@@ -1,11 +1,16 @@
 package com.c37.homelib;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 
 public class HomeLibrary {
 
@@ -17,14 +22,38 @@ public class HomeLibrary {
 		JMenu itmInsert = new JMenu("Insert");
 		itmInsert.setMnemonic(KeyEvent.VK_I);
 		
+		// build and add insert book option
 		JMenuItem itmInsBook = new JMenuItem("Book");
-		
+		itmInsBook.setMnemonic(KeyEvent.VK_B);
+		itmInsBook.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("Insert book.");
+			}
+		});
 		itmInsert.add(itmInsBook);
-		JMenuItem itmInsMusic = new JMenuItem("Music");
-		itmInsert.add(itmInsMusic);
-		JMenuItem itmInsMovie = new JMenuItem("Movie");
-		itmInsert.add(itmInsMovie);
 		
+		// build insert music option
+		JMenuItem itmInsMusic = new JMenuItem("Music");
+		itmInsMusic.setMnemonic(KeyEvent.VK_M);
+		itmInsMusic.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("Insert music.");
+			}
+		});
+		itmInsert.add(itmInsMusic);
+		
+		// build insert movie option
+		JMenuItem itmInsMovie = new JMenuItem("Movie");
+		itmInsMovie.setMnemonic(KeyEvent.VK_O);
+		itmInsMovie.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("Insert movie.");
+			}
+		});
+		itmInsert.add(itmInsMovie);
 		
 		
 		menu.add(itmInsert);
@@ -43,12 +72,14 @@ public class HomeLibrary {
 	
 	public JMenu createViewMenu() {
 		JMenu menu = new JMenu("View");
+		menu.setMnemonic(KeyEvent.VK_V);
 		
 		return menu;
 	}
 	
 	public JMenu createReportMenu() {
 		JMenu menu = new JMenu("Report");
+		menu.setMnemonic(KeyEvent.VK_R);
 		
 		return menu;
 	}
@@ -76,6 +107,10 @@ public class HomeLibrary {
 		// create and set up the window.
         JFrame frame = new JFrame("Home Library");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        JButton btnExit = new JButton("Exit");
+        btnExit.setMnemonic(KeyEvent.VK_E);
+        frame.add(btnExit);
 
         // create and set up the content pane.
         HomeLibrary demo = new HomeLibrary();
@@ -83,7 +118,7 @@ public class HomeLibrary {
         //frame.setContentPane(demo.createContentPane());
 
         // display the window.
-        frame.setSize(640, 480);
+        frame.setSize(300, 100);
         frame.setVisible(true);
 	}
 	
