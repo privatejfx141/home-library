@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS Person (
+
+);
+
+CREATE TABLE IF NOT EXISTS FilmCrew (
+
+);
+
+CREATE TABLE IF NOT EXISTS MusicCrew (
+
+);
