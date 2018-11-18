@@ -20,6 +20,8 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
 
 public class MusicTrackDialog extends JDialog {
 
@@ -29,15 +31,22 @@ public class MusicTrackDialog extends JDialog {
     private static final long serialVersionUID = 6144503497906561260L;
 
     private final JPanel contentPanel = new JPanel();
-
-    @SuppressWarnings("unused")
-    private MusicDialog parentDialog = null;
     private JTextField nameField;
     private JTextField languageField;
     private JTextField songwriterField;
     private JTextField composerField;
     private JTextField arrangementField;
+    private JComboBox<String> diskTypeComboBox;
     private MusicTrack musicTrack;
+    private JTextField singer1Field;
+    private JTextField singer2Field;
+
+    public static void main(String args[]) {
+        MusicTrackDialog dialog = new MusicTrackDialog(null);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        dialog.setVisible(true);
+        dialog.setLocationRelativeTo(null);
+    }
 
     /**
      * Create the dialog.
@@ -46,20 +55,19 @@ public class MusicTrackDialog extends JDialog {
      */
     public MusicTrackDialog(MusicDialog parentDialog) {
         super(parentDialog, "Test", true);
-        this.parentDialog = parentDialog;
 
         setResizable(false);
         setTitle("Insert Album Track");
-        setBounds(100, 100, 450, 240);
+        setBounds(100, 100, 450, 320);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
         getContentPane().add(contentPanel, BorderLayout.NORTH);
 
         GridBagLayout gbl_contentPanel = new GridBagLayout();
         gbl_contentPanel.columnWidths = new int[] { 160, 240 };
-        gbl_contentPanel.rowHeights = new int[] { 26, 26, 26, 26, 26 };
-        gbl_contentPanel.columnWeights = new double[] { 0.0, 0.0 };
-        gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
+        gbl_contentPanel.rowHeights = new int[] { 26, 26, 26, 26, 26, 26, 26 };
+        gbl_contentPanel.columnWeights = new double[] { 0.0, 1.0 };
+        gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
         contentPanel.setLayout(gbl_contentPanel);
 
         JLabel nameLabel = new JLabel("Track Name");
@@ -97,13 +105,48 @@ public class MusicTrackDialog extends JDialog {
         contentPanel.add(languageField, gbc_languageField);
         languageField.setColumns(10);
 
+        JLabel lblSingers = new JLabel("Singer 1");
+        lblSingers.setForeground(Color.BLUE);
+        GridBagConstraints gbc_lblSingers = new GridBagConstraints();
+        gbc_lblSingers.anchor = GridBagConstraints.WEST;
+        gbc_lblSingers.insets = new Insets(0, 0, 5, 5);
+        gbc_lblSingers.gridx = 0;
+        gbc_lblSingers.gridy = 2;
+        contentPanel.add(lblSingers, gbc_lblSingers);
+
+        singer1Field = new JTextField();
+        GridBagConstraints gbc_singer1Field = new GridBagConstraints();
+        gbc_singer1Field.insets = new Insets(0, 0, 5, 0);
+        gbc_singer1Field.fill = GridBagConstraints.HORIZONTAL;
+        gbc_singer1Field.gridx = 1;
+        gbc_singer1Field.gridy = 2;
+        contentPanel.add(singer1Field, gbc_singer1Field);
+        singer1Field.setColumns(10);
+
+        JLabel lblSinger = new JLabel("Singer 2");
+        GridBagConstraints gbc_lblSinger = new GridBagConstraints();
+        gbc_lblSinger.insets = new Insets(0, 0, 5, 5);
+        gbc_lblSinger.anchor = GridBagConstraints.WEST;
+        gbc_lblSinger.gridx = 0;
+        gbc_lblSinger.gridy = 3;
+        contentPanel.add(lblSinger, gbc_lblSinger);
+
+        singer2Field = new JTextField();
+        GridBagConstraints gbc_singer2Field = new GridBagConstraints();
+        gbc_singer2Field.insets = new Insets(0, 0, 5, 0);
+        gbc_singer2Field.fill = GridBagConstraints.HORIZONTAL;
+        gbc_singer2Field.gridx = 1;
+        gbc_singer2Field.gridy = 3;
+        contentPanel.add(singer2Field, gbc_singer2Field);
+        singer2Field.setColumns(10);
+
         JLabel songwriterLabel = new JLabel("Songwriter");
         songwriterLabel.setForeground(Color.BLUE);
         GridBagConstraints gbc_songwriterLabel = new GridBagConstraints();
         gbc_songwriterLabel.fill = GridBagConstraints.BOTH;
         gbc_songwriterLabel.insets = new Insets(0, 0, 5, 5);
         gbc_songwriterLabel.gridx = 0;
-        gbc_songwriterLabel.gridy = 2;
+        gbc_songwriterLabel.gridy = 4;
         contentPanel.add(songwriterLabel, gbc_songwriterLabel);
 
         songwriterField = new JTextField();
@@ -111,7 +154,7 @@ public class MusicTrackDialog extends JDialog {
         gbc_songwriterField.fill = GridBagConstraints.BOTH;
         gbc_songwriterField.insets = new Insets(0, 0, 5, 0);
         gbc_songwriterField.gridx = 1;
-        gbc_songwriterField.gridy = 2;
+        gbc_songwriterField.gridy = 4;
         contentPanel.add(songwriterField, gbc_songwriterField);
         songwriterField.setColumns(10);
 
@@ -121,7 +164,7 @@ public class MusicTrackDialog extends JDialog {
         gbc_composerLabel.fill = GridBagConstraints.BOTH;
         gbc_composerLabel.insets = new Insets(0, 0, 5, 5);
         gbc_composerLabel.gridx = 0;
-        gbc_composerLabel.gridy = 3;
+        gbc_composerLabel.gridy = 5;
         contentPanel.add(composerLabel, gbc_composerLabel);
 
         composerField = new JTextField();
@@ -129,7 +172,7 @@ public class MusicTrackDialog extends JDialog {
         gbc_composerField.fill = GridBagConstraints.BOTH;
         gbc_composerField.insets = new Insets(0, 0, 5, 0);
         gbc_composerField.gridx = 1;
-        gbc_composerField.gridy = 3;
+        gbc_composerField.gridy = 5;
         contentPanel.add(composerField, gbc_composerField);
         composerField.setColumns(10);
 
@@ -137,18 +180,36 @@ public class MusicTrackDialog extends JDialog {
         arrangementLabel.setForeground(Color.BLUE);
         GridBagConstraints gbc_arrangementLabel = new GridBagConstraints();
         gbc_arrangementLabel.fill = GridBagConstraints.BOTH;
-        gbc_arrangementLabel.insets = new Insets(0, 0, 0, 5);
+        gbc_arrangementLabel.insets = new Insets(0, 0, 5, 5);
         gbc_arrangementLabel.gridx = 0;
-        gbc_arrangementLabel.gridy = 4;
+        gbc_arrangementLabel.gridy = 6;
         contentPanel.add(arrangementLabel, gbc_arrangementLabel);
 
         arrangementField = new JTextField();
         GridBagConstraints gbc_arrangementField = new GridBagConstraints();
+        gbc_arrangementField.insets = new Insets(0, 0, 5, 0);
         gbc_arrangementField.fill = GridBagConstraints.BOTH;
         gbc_arrangementField.gridx = 1;
-        gbc_arrangementField.gridy = 4;
+        gbc_arrangementField.gridy = 6;
         contentPanel.add(arrangementField, gbc_arrangementField);
         arrangementField.setColumns(10);
+
+        JLabel diskTypeLabel = new JLabel("Disk Type");
+        GridBagConstraints gbc_diskTypeLabel = new GridBagConstraints();
+        gbc_diskTypeLabel.anchor = GridBagConstraints.WEST;
+        gbc_diskTypeLabel.insets = new Insets(0, 0, 0, 5);
+        gbc_diskTypeLabel.gridx = 0;
+        gbc_diskTypeLabel.gridy = 7;
+        contentPanel.add(diskTypeLabel, gbc_diskTypeLabel);
+
+        diskTypeComboBox = new JComboBox<>();
+        diskTypeComboBox.setModel(new DefaultComboBoxModel<String>(new String[] { "CD", "Vinyl" }));
+        diskTypeComboBox.setSelectedIndex(-1);
+        GridBagConstraints gbc_diskTypeComboBox = new GridBagConstraints();
+        gbc_diskTypeComboBox.fill = GridBagConstraints.HORIZONTAL;
+        gbc_diskTypeComboBox.gridx = 1;
+        gbc_diskTypeComboBox.gridy = 7;
+        contentPanel.add(diskTypeComboBox, gbc_diskTypeComboBox);
 
         JPanel buttonPane = new JPanel();
         buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -180,16 +241,32 @@ public class MusicTrackDialog extends JDialog {
     private void submit() {
         String name = nameField.getText();
         String language = languageField.getText();
+        String singer1Text = singer1Field.getText();
+        String singer2Text = singer2Field.getText();
         String songwriterText = songwriterField.getText();
         String composerText = composerField.getText();
         String arrangementText = arrangementField.getText();
+        String diskType = (String) diskTypeComboBox.getSelectedItem();
         // check for mandatory fields
-        if (name.isEmpty() || songwriterText.isEmpty() || composerText.isEmpty() || arrangementText.isEmpty()) {
+        if (name.isEmpty() || singer1Text.isEmpty() || songwriterText.isEmpty() || composerText.isEmpty()
+                || arrangementText.isEmpty()) {
             String error = "All mandatory fields (in blue) must be filled in before submitting.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         // parse people
+        Person singer1 = Person.parseName(singer1Text);
+        if (singer1 == null) {
+            String error = "Singer 1 name is not a proper name.";
+            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        Person singer2 = Person.parseName(singer2Text);
+        if (!singer2Text.isEmpty() && singer2 == null) {
+            String error = "Singer 2 name is not a proper name.";
+            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         Person songwriter = Person.parseName(songwriterText);
         if (songwriter == null) {
             String error = "Song writer name is not a proper name.";
@@ -208,10 +285,13 @@ public class MusicTrackDialog extends JDialog {
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        musicTrack = new MusicTrack(name, language, songwriter, composer, arrangement);
+        musicTrack = new MusicTrack(name, language, songwriter, composer, arrangement, diskType);
+        musicTrack.addSinger(singer1);
+        if (singer2 != null) {
+            musicTrack.addSinger(singer2);
+        }
         System.out.println("Added track: " + name);
         dispose();
-
     }
 
     public MusicTrack getMusicTrack() {

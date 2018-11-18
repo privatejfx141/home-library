@@ -174,6 +174,7 @@ public class MusicDialog extends JDialog {
         MusicTrackDialog dialog = new MusicTrackDialog(this);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setVisible(true);
+        dialog.setLocationRelativeTo(null);
         MusicTrack track = dialog.getMusicTrack();
         if (track != null) {
             addMusicTrack(dialog.getMusicTrack());
