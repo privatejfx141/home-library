@@ -9,6 +9,10 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import com.hl.database.DatabaseDriver;
+import com.hl.database.DatabaseInserter;
+import com.hl.exceptions.DatabaseInsertException;
+import com.hl.gui.HomeLibrary;
 import com.hl.record.Person;
 import com.hl.record.book.Book;
 
@@ -16,6 +20,8 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +42,8 @@ public class BookDialog extends JDialog {
     private static final long serialVersionUID = -8642016230269365480L;
 
     private final JPanel contentPanel = new JPanel();
+    private int mode;
+
     private JTextField nameField;
     private JTextField isbnField;
     private JTextField publisherField;
@@ -65,16 +73,31 @@ public class BookDialog extends JDialog {
     private JTextArea descriptionField;
     private JTextArea keywordField;
     private Book book;
+    
+    /**
+     * Launch the application.
+     */
+    public static void main(String[] args) {
+        try {
+            BookDialog dialog = new BookDialog(null, 0);
+            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            dialog.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Create the dialog.
-     * 
-     * @param homeLibrary
      */
-    public BookDialog(JFrame parentFrame) {
+    public BookDialog(JFrame parentFrame, int mode) {
         super(parentFrame, "Insert Book", true);
+        
+        this.mode = mode;
+        if (mode == HomeLibrary.UPDATE_RECORD) {
+            setTitle("Update Book");
+        }
         setResizable(false);
-        setTitle("Insert Book");
         setBounds(100, 100, 480, 720);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(contentPanel, BorderLayout.NORTH);
@@ -95,7 +118,7 @@ public class BookDialog extends JDialog {
         gbc_nameLabel.gridy = 0;
         contentPanel.add(nameLabel, gbc_nameLabel);
 
-        nameField = new JTextField();
+        nameField = new JTextField(45);
         GridBagConstraints gbc_nameField = new GridBagConstraints();
         gbc_nameField.fill = GridBagConstraints.BOTH;
         gbc_nameField.insets = new Insets(0, 0, 5, 0);
@@ -113,14 +136,13 @@ public class BookDialog extends JDialog {
         gbc_isbnLabel.gridy = 1;
         contentPanel.add(isbnLabel, gbc_isbnLabel);
 
-        isbnField = new JTextField();
+        isbnField = new JTextField(13);
         GridBagConstraints gbc_isbnField = new GridBagConstraints();
         gbc_isbnField.fill = GridBagConstraints.BOTH;
         gbc_isbnField.insets = new Insets(0, 0, 5, 0);
         gbc_isbnField.gridx = 1;
         gbc_isbnField.gridy = 1;
         contentPanel.add(isbnField, gbc_isbnField);
-        isbnField.setColumns(10);
 
         JLabel publisherLabel = new JLabel("Publisher");
         publisherLabel.setForeground(Color.BLUE);
@@ -131,7 +153,7 @@ public class BookDialog extends JDialog {
         gbc_publisherLabel.gridy = 2;
         contentPanel.add(publisherLabel, gbc_publisherLabel);
 
-        publisherField = new JTextField();
+        publisherField = new JTextField(45);
         GridBagConstraints gbc_publisherField = new GridBagConstraints();
         gbc_publisherField.fill = GridBagConstraints.BOTH;
         gbc_publisherField.insets = new Insets(0, 0, 5, 0);
@@ -328,7 +350,7 @@ public class BookDialog extends JDialog {
         submitButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                submit();
+                handleSubmit();
             }
         });
         submitButton.setActionCommand("OK");
@@ -407,7 +429,27 @@ public class BookDialog extends JDialog {
         return authors;
     }
 
-    public void submit() {
+    protected void handleSubmit() {
+        book = parseFields();
+        // if parsing was successful
+        if (book != null) {
+            // insert to database
+            try {
+                insertBook();
+                String message = "Insertion to HL database was successful!";
+                JOptionPane.showMessageDialog(this, message, "Submit Success", JOptionPane.INFORMATION_MESSAGE);
+            } catch (DatabaseInsertException | SQLException e) {
+                e.printStackTrace();
+                String message = "Error! Insertion to HL database was not successful.";
+                JOptionPane.showMessageDialog(this, message, "Submit Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            // exit back to main frame
+            dispose();
+        }
+    }
+
+    protected Book parseFields() {
         String isbn = isbnField.getText();
         String name = nameField.getText();
         String publisher = publisherField.getText();
@@ -418,12 +460,12 @@ public class BookDialog extends JDialog {
         if (isbn.isEmpty() || name.isEmpty() || publisher.isEmpty() || pagesText.isEmpty() || yearText.isEmpty()) {
             String error = "All mandatory fields (in blue) must be filled in before submitting.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            return null;
         }
         // check fields for author
         List<Person> authors = parseAuthors();
         if (authors == null) {
-            return;
+            return null;
         }
         // parse number values
         int pages = -1;
@@ -432,7 +474,7 @@ public class BookDialog extends JDialog {
         } catch (NumberFormatException e) {
             String error = "Number of Pages must be an integer.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            return null;
         }
         int year = -1;
         try {
@@ -440,7 +482,7 @@ public class BookDialog extends JDialog {
         } catch (NumberFormatException e) {
             String error = "Year of Publication must be an integer.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            return null;
         }
         int edition = -1;
         if (!editionText.isEmpty()) {
@@ -449,15 +491,24 @@ public class BookDialog extends JDialog {
             } catch (NumberFormatException e) {
                 String error = "Edition Number must be an integer.";
                 JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-                return;
+                return null;
             }
         }
         // parse description and keywords
         String description = descriptionField.getText().trim();
         String keywordText = keywordField.getText().trim();
-        List<String> keywords = Arrays.asList(keywordText.split("\\s*;\\s*"));
+        List<String> keywords = new ArrayList<String>(Arrays.asList(keywordText.split("\\s*;\\s*")));
+        if (keywordText.isEmpty()) {
+            keywords.clear();
+        }
         // build book
-        book = new Book(isbn, name, publisher, pages, year, edition, description, authors, keywords);
+        return new Book(isbn, name, publisher, pages, year, edition, description, authors, keywords);
+    }
+
+    protected void insertBook() throws DatabaseInsertException, SQLException {
+        Connection connection = DatabaseDriver.connectToDatabase();
+        DatabaseInserter.insertBook(connection, book);
+        connection.close();
     }
 
     public Book getBook() {

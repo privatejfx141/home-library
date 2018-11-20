@@ -5,9 +5,15 @@ import java.awt.FlowLayout;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+
+import com.hl.database.DatabaseDriver;
+import com.hl.database.DatabaseQueryView;
+
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.JCheckBox;
 import java.awt.GridBagLayout;
@@ -15,6 +21,9 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.Color;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.awt.event.ActionEvent;
 
 public class QueryDialog extends JDialog {
@@ -24,14 +33,12 @@ public class QueryDialog extends JDialog {
     private static final long serialVersionUID = 7699303038774575197L;
 
     private final JPanel contentPanel = new JPanel();
-
     private JCheckBox bookCheckBox = new JCheckBox("Book");
     private JCheckBox musicCheckBox = new JCheckBox("Music Album");
     private JCheckBox movieCheckBox = new JCheckBox("Movie");
-
     private JLabel nameLabel = new JLabel("Product Name");
     private JTextField nameField = new JTextField();
-    private JLabel yearLabel = new JLabel("Year of Publication/Year");
+    private JLabel yearLabel = new JLabel("Year of Publication/Release");
     private JTextField yearField = new JTextField();
 
     /**
@@ -39,7 +46,7 @@ public class QueryDialog extends JDialog {
      */
     public static void main(String[] args) {
         try {
-            QueryDialog dialog = new QueryDialog();
+            QueryDialog dialog = new QueryDialog(null);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setVisible(true);
         } catch (Exception e) {
@@ -50,7 +57,8 @@ public class QueryDialog extends JDialog {
     /**
      * Create the dialog.
      */
-    public QueryDialog() {
+    public QueryDialog(JFrame parentFrame) {
+        super(parentFrame, "Query Record", true);
         setResizable(false);
         setTitle("Query Record");
         setBounds(100, 100, 480, 200);
@@ -59,7 +67,7 @@ public class QueryDialog extends JDialog {
         getContentPane().add(contentPanel, BorderLayout.NORTH);
 
         GridBagLayout gbl_contentPanel = new GridBagLayout();
-        gbl_contentPanel.columnWidths = new int[] { 200, 220 };
+        gbl_contentPanel.columnWidths = new int[] {180, 240};
         gbl_contentPanel.rowHeights = new int[] { 26, 26, 26 };
         gbl_contentPanel.columnWeights = new double[] { 0.0, 0.0 };
         gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0 };
@@ -140,11 +148,54 @@ public class QueryDialog extends JDialog {
         cancelButton.setMnemonic('c');
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
-
     }
 
     protected void submit() {
+        // check if any check boxes are selected
+        boolean isBook = bookCheckBox.isSelected();
+        boolean isMusic = musicCheckBox.isSelected();
+        boolean isMovie = movieCheckBox.isSelected();
+        if (!(isBook || isMusic || isMovie)) {
+            String error = "At least one checkbox option must be selected.";
+            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // parse name and year fields
         String name = nameField.getText();
         String yearText = yearField.getText();
+        if (name.isEmpty() || yearText.isEmpty()) {
+            String error = "All mandatory fields (in blue) must be filled in before submitting.";
+            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        int year = -1;
+        try {
+            year = Integer.parseInt(yearText);
+        } catch (NumberFormatException e) {
+            String error = "Year of Publication/Release must be an integer.";
+            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        dispose();
+        // display results
+        Connection connection = DatabaseDriver.connectToDatabase();
+        ArrayList<Object[]> rawData = DatabaseQueryView.getViewData(connection, name, year, isBook, isMusic, isMovie);
+        ArrayList<String> header = new ArrayList<>();
+        header.add("Product Name");
+        header.add("Year");
+        header.add("Product Type");
+        header.add("Director/Singer/Author");
+        try {
+            ResultSetTable.generateTableDialog(rawData, header, "View Results");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
+
 }

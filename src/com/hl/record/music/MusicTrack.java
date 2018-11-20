@@ -14,6 +14,55 @@ public class MusicTrack {
     private Person arrangement;
     private String diskType = "";
 
+    public static class Builder {
+
+        private MusicTrack track = new MusicTrack();
+
+        public Builder setName(String name) {
+            track.name = name;
+            return this;
+        }
+
+        public Builder setLanguage(String language) {
+            track.language = language;
+            return this;
+        }
+
+        public Builder addSinger(Person singer) {
+            track.singers.add(singer);
+            return this;
+        }
+
+        public Builder setSongwriter(Person songwriter) {
+            track.songwriter = songwriter;
+            return this;
+        }
+
+        public Builder setComposer(Person composer) {
+            track.composer = composer;
+            return this;
+        }
+
+        public Builder setArranger(Person arrangement) {
+            track.arrangement = arrangement;
+            return this;
+        }
+
+        public Builder setDiskType(String diskType) {
+            track.diskType = diskType;
+            return this;
+        }
+
+        public MusicTrack create() {
+            return track;
+        }
+
+    }
+
+    private MusicTrack() {
+        this.singers = new ArrayList<>();
+    }
+
     public MusicTrack(String name, String language, Person songwriter, Person composer, Person arrangement,
             String diskType) {
         this.name = name;

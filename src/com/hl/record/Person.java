@@ -1,5 +1,7 @@
 package com.hl.record;
 
+import com.hl.exceptions.NameFormatException;
+
 public class Person {
     private int id = -1;
     private String firstName = "";
@@ -7,7 +9,7 @@ public class Person {
     private String lastName = "";
     private String gender = "";
 
-    public static Person parseName(String name) {
+    public static Person parseName(String name) throws NameFormatException {
         Person person = null;
         name = name.trim();
         String[] split = name.split(" ");
@@ -15,6 +17,8 @@ public class Person {
             person = new Person(split[0], "", split[1]);
         } else if (split.length == 3) {
             person = new Person(split[0], split[1], split[2]);
+        } else {
+            throw new NameFormatException("Name is not a proper name.");
         }
         return person;
     }

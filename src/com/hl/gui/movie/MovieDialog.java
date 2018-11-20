@@ -3,16 +3,14 @@ package com.hl.gui.movie;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
-import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import com.hl.gui.HomeLibrary;
 import com.hl.record.movie.Movie;
 import com.hl.record.movie.MovieCrew;
 
@@ -46,13 +44,13 @@ public class MovieDialog extends JDialog {
 
     /**
      * Create the dialog.
-     * 
-     * @param homeLibrary
      */
-    public MovieDialog(JFrame parentFrame) {
+    public MovieDialog(JFrame parentFrame, int mode) {
         super(parentFrame, "Insert Movie", true);
+        if (mode == HomeLibrary.UPDATE_RECORD) {
+            setTitle("Update Movie");
+        }
         setResizable(false);
-        setTitle("Insert Movie");
         setBounds(100, 100, 450, 770);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));

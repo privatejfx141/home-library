@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.hl.exceptions.DatabaseInsertException;
 import com.hl.record.Person;
 import com.hl.record.book.Book;
 import com.hl.record.movie.Movie;
@@ -27,7 +28,7 @@ public class DatabaseInserter {
             }
             statement.setString(3, person.getLastName());
             if (person.getGender().isEmpty()) {
-                statement.setNull(3, java.sql.Types.BOOLEAN);
+                statement.setNull(4, java.sql.Types.BOOLEAN);
             } else {
                 statement.setBoolean(4, person.getGender().startsWith("M"));
             }
@@ -43,8 +44,8 @@ public class DatabaseInserter {
         throw new DatabaseInsertException();
     }
 
-    public static int insertBook(Connection connection, Book book) throws DatabaseInsertException {
-        int recordId = insertBookDetails(connection, book);
+    public static String insertBook(Connection connection, Book book) throws DatabaseInsertException {
+        String recordId = insertBookDetails(connection, book);
         String isbn = book.getIsbn();
         // insert authors
         for (Person author : book.getAuthors()) {
@@ -65,11 +66,11 @@ public class DatabaseInserter {
         return recordId;
     }
 
-    private static int insertBookDetails(Connection connection, Book book) throws DatabaseInsertException {
-        String sql = "INSERT INTO TABLE Book (ISBN, Title, Publisher, NumberOfPages, YearOfPublication, "
+    private static String insertBookDetails(Connection connection, Book book) throws DatabaseInsertException {
+        String sql = "INSERT INTO Book (ISBN, Title, Publisher, NumberOfPages, YearOfPublication, "
                 + "EditionNumber, Abstract) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, book.getIsbn());
             statement.setString(2, book.getTitle());
             statement.setString(3, book.getPublisher());
@@ -86,10 +87,7 @@ public class DatabaseInserter {
                 statement.setString(7, book.getDescription());
             }
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return book.getIsbn();
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -118,14 +116,11 @@ public class DatabaseInserter {
             throws DatabaseInsertException {
         String sql = "INSERT INTO BookAuthor (ISBN, Author_ID) VALUES (?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, isbn);
             statement.setInt(2, authorId);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return 1;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -137,14 +132,11 @@ public class DatabaseInserter {
             throws DatabaseInsertException {
         String sql = "INSERT INTO BookKeyword (ISBN, Keyword_ID) VALUES (?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, isbn);
             statement.setInt(2, keywordId);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return 1;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -187,7 +179,7 @@ public class DatabaseInserter {
         String sql = "INSERT INTO Music (AlbumName, Year, MusicName, Language, DiskType, Producer_ID) "
                 + "VALUES (?, ?, ?, ?, ?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, album.getName());
             statement.setInt(2, album.getYear());
             statement.setString(3, track.getName());
@@ -203,10 +195,7 @@ public class DatabaseInserter {
             }
             statement.setInt(6, producerId);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return 1;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -224,16 +213,13 @@ public class DatabaseInserter {
         // prepare SQL statement
         String sql = "INSERT INTO MusicSinger (AlbumName, Year, MusicName, PeopleInvolved_ID) VALUES (?, ?, ?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, album.getName());
             statement.setInt(2, album.getYear());
             statement.setString(3, track.getName());
             statement.setInt(4, personId);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return personId;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -253,10 +239,10 @@ public class DatabaseInserter {
             personId = insertPerson(connection, crew);
         }
         // prepare SQL statement
-        String sql = "INSERT INTO PeopleInvolvedMusic (AlbumName, Year, MusicName, PeopleInvolved_ID "
+        String sql = "INSERT INTO PeopleInvolvedMusic (AlbumName, Year, MusicName, PeopleInvolved_ID, "
                 + "IsSongwriter, IsComposer, IsArranger) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, album.getName());
             statement.setInt(2, album.getYear());
             statement.setString(3, track.getName());
@@ -265,10 +251,7 @@ public class DatabaseInserter {
             statement.setBoolean(6, isComposer);
             statement.setBoolean(7, isArranger);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return personId;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -279,9 +262,13 @@ public class DatabaseInserter {
     public static int insertMovie(Connection connection, Movie movie) throws DatabaseInsertException {
         int recordId = insertMovieDetails(connection, movie);
         for (String role : MovieCrew.ROLES) {
-            for (MovieCrew crew : movie.getCrewMembers().get(role)) {
-                int personId = insertMovieCrew(connection, movie, crew);
-                insertMovieAward(connection, personId, movie, crew.getAward());
+            try {
+                for (MovieCrew crew : movie.getCrewMembers().get(role)) {
+                    int personId = insertMovieCrew(connection, movie, crew);
+                    insertMovieAward(connection, personId, movie, crew.getAward());
+                }
+            } catch (NullPointerException e) {
+                System.out.println("Warning! Crew of " + role + " does not exist.");
             }
         }
         return recordId;
@@ -290,14 +277,11 @@ public class DatabaseInserter {
     private static int insertMovieDetails(Connection connection, Movie movie) throws DatabaseInsertException {
         String sql = "INSERT INTO Movie (MovieName, Year) VALUES (?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, movie.getName());
             statement.setInt(2, movie.getYear());
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return 1;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -337,16 +321,13 @@ public class DatabaseInserter {
         String sql = "INSERT INTO CrewMember (PeopleInvolved_ID, MovieName, ReleaseYear, Role_ID) VALUES (?, ?, ?, ?)";
         int roleId = DatabaseSelector.getMovieRoleId(connection, crew.getRole());
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setInt(1, personId);
             statement.setString(2, movie.getName());
             statement.setInt(3, movie.getYear());
             statement.setInt(4, roleId);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return personId;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -356,23 +337,27 @@ public class DatabaseInserter {
 
     public static int insertMovieAward(Connection connection, int personId, Movie movie, boolean award)
             throws DatabaseInsertException {
+        String movieName = movie.getName();
+        int year = movie.getYear();
+        if (DatabaseSelector.hasMovieAward(connection, personId, movieName, year)) {
+            if (award) {
+                DatabaseUpdater.updateMovieAward(connection, personId, movieName, year, award);
+            }
+            return 0;
+        }
         String sql = "INSERT INTO Award (PeopleInvolved_ID, MovieName, Year, Award) VALUES (?, ?, ?, ?)";
         try {
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setInt(1, personId);
-            statement.setString(2, movie.getName());
-            statement.setInt(3, movie.getYear());
+            statement.setString(2, movieName);
+            statement.setInt(3, year);
             statement.setBoolean(4, award);
             if (statement.executeUpdate() > 0) {
-                ResultSet uniqueKey = statement.getGeneratedKeys();
-                if (uniqueKey.next()) {
-                    return uniqueKey.getInt(1);
-                }
+                return 1;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         throw new DatabaseInsertException();
     }
-
 }

@@ -9,6 +9,7 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import com.hl.exceptions.NameFormatException;
 import com.hl.record.Person;
 import com.hl.record.music.MusicTrack;
 
@@ -255,32 +256,42 @@ public class MusicTrackDialog extends JDialog {
             return;
         }
         // parse people
-        Person singer1 = Person.parseName(singer1Text);
-        if (singer1 == null) {
+        Person singer1;
+        try {
+            singer1 = Person.parseName(singer1Text);
+        } catch (NameFormatException e) {
             String error = "Singer 1 name is not a proper name.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        Person singer2 = Person.parseName(singer2Text);
-        if (!singer2Text.isEmpty() && singer2 == null) {
+        Person singer2;
+        try {
+            singer2 = Person.parseName(singer2Text);
+        } catch (NameFormatException e) {
             String error = "Singer 2 name is not a proper name.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        Person songwriter = Person.parseName(songwriterText);
-        if (songwriter == null) {
+        Person songwriter;
+        try {
+            songwriter = Person.parseName(songwriterText);
+        } catch (NameFormatException e) {
             String error = "Song writer name is not a proper name.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        Person composer = Person.parseName(composerText);
-        if (composer == null) {
+        Person composer;
+        try {
+            composer = Person.parseName(composerText);
+        } catch (NameFormatException e) {
             String error = "Composer name is not a proper name.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        Person arrangement = Person.parseName(arrangementText);
-        if (arrangement == null) {
+        Person arrangement;
+        try {
+            arrangement = Person.parseName(arrangementText);
+        } catch (NameFormatException e) {
             String error = "Arrangement name is not a proper name.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;

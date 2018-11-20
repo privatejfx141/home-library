@@ -1,4 +1,4 @@
-package com.hl.database;
+package com.hl.exceptions;
 
 public class DatabaseInsertException extends Exception {
 

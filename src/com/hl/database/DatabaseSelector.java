@@ -20,18 +20,12 @@ public class DatabaseSelector {
     public static int getPersonId(Connection connection, Person person) {
         int personId = -1;
         String firstName = person.getFirstName();
-        String middleName = person.getMiddleName();
         String lastName = person.getLastName();
-        String sql = "SELECT DISTINCT ID FROM PeopleInvolved WHERE LOWER(FirstName) = ? AND LOWER(MiddleName) = ? AND LOWER(FamilyName) = ?";
+        String sql = "SELECT DISTINCT ID FROM PeopleInvolved WHERE LOWER(FirstName) = ? AND LOWER(FamilyName) = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, firstName.toLowerCase());
-            if (middleName.isEmpty()) {
-                statement.setNull(2, java.sql.Types.VARCHAR);
-            } else {
-                statement.setString(2, middleName.toLowerCase());
-            }
-            statement.setString(3, lastName.toLowerCase());
+            statement.setString(2, lastName.toLowerCase());
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 personId = results.getInt(1);
@@ -40,6 +34,22 @@ public class DatabaseSelector {
             e.printStackTrace();
         }
         return personId;
+    }
+
+    public static String getBookISBN(Connection connection, String bookTitle) {
+        String isbn = null;
+        String sql = "SELECT DISTINCT ISBN FROM Book WHERE LOWER(Title) = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, bookTitle.toLowerCase());
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                isbn = results.getString(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return isbn;
     }
 
     public static int getKeywordId(Connection connection, String keyword) {
@@ -57,10 +67,26 @@ public class DatabaseSelector {
         }
         return keywordId;
     }
-    
+
+    public static int getMovieYear(Connection connection, String movieName) {
+        int year = -1;
+        String sql = "SELECT DISTINCT Year FROM Movie WHERE LOWER(MovieName) = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, movieName.toLowerCase());
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                year = results.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return year;
+    }
+
     public static int getMovieRoleId(Connection connection, String role) {
         int roleId = -1;
-        String sql = "SELECT DISTINCT ID FROM Roles WHERE LOWER(role) = ?";
+        String sql = "SELECT DISTINCT ID FROM Role WHERE LOWER(Description) = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, role.toLowerCase());
@@ -72,6 +98,22 @@ public class DatabaseSelector {
             e.printStackTrace();
         }
         return roleId;
+    }
+
+    public static int getMusicAlbumYear(Connection connection, String albumName) {
+        int year = -1;
+        String sql = "SELECT DISTINCT Year From Music WHERE LOWER(AlbumName) = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, albumName.toLowerCase());
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                year = results.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return year;
     }
 
     public static Person getPerson(Connection connection, int personId) {
@@ -122,38 +164,54 @@ public class DatabaseSelector {
         return book;
     }
 
-    public static List<Person> getBookAuthors(Connection connection, String isbn) {
-        List<Person> authors = new ArrayList<>();
-        String sql = "SELECT Author_ID FROM BookAuthor WHERE ID = ?";
+    public static List<Integer> getBookAuthorIds(Connection connection, String isbn) {
+        List<Integer> authorIds = new ArrayList<>();
+        String sql = "SELECT Author_ID FROM BookAuthor WHERE ISBN = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, isbn);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 int authorId = results.getInt("Author_ID");
-                Person author = getPerson(connection, authorId);
-                authors.add(author);
+                authorIds.add(authorId);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return authorIds;
+    }
+
+    public static List<Person> getBookAuthors(Connection connection, String isbn) {
+        List<Person> authors = new ArrayList<>();
+        for (int authorId : getBookAuthorIds(connection, isbn)) {
+            Person author = getPerson(connection, authorId);
+            authors.add(author);
+        }
         return authors;
     }
 
-    public static List<String> getBookKeywords(Connection connection, String isbn) {
-        List<String> keywords = new ArrayList<>();
+    public static List<Integer> getBookKeywordIds(Connection connection, String isbn) {
+        List<Integer> keywordIds = new ArrayList<>();
         String sql = "SELECT Keyword_ID FROM BookKeyword WHERE ISBN = ?";
-        PreparedStatement statement;
         try {
-            statement = connection.prepareStatement(sql);
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, isbn);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 int keywordId = results.getInt("Keyword_ID");
-                String keyword = getKeyword(connection, keywordId);
-                keywords.add(keyword);
+                keywordIds.add(keywordId);
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+        return keywordIds;
+    }
+
+    public static List<String> getBookKeywords(Connection connection, String isbn) {
+        List<String> keywords = new ArrayList<>();
+        for (int keywordId : getBookKeywordIds(connection, isbn)) {
+            String keyword = getKeyword(connection, keywordId);
+            keywords.add(keyword);
         }
         return keywords;
     }
@@ -211,6 +269,53 @@ public class DatabaseSelector {
         Person arranger = getMusicCrew(connection, albumName, year, name, "Arranger");
         track = new MusicTrack(name, language, songwriter, composer, arranger, diskTypeName);
         return track;
+    }
+
+    public static List<Integer> getMusicCrewIds(Connection connection, String albumName, int year) {
+        List<Integer> crewIds = new ArrayList<>();
+        // add people involved music
+        String sql = "SELECT DISTINCT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE LOWER(AlbumName) = ? AND YEAR = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, albumName.toLowerCase());
+            statement.setInt(2, year);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                int crewId = results.getInt("PeopleInvolved_ID");
+                crewIds.add(crewId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // add music singers
+        sql = "SELECT DISTINCT PeopleInvolved_ID FROM MusicSinger WHERE LOWER(AlbumName) = ? AND YEAR = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, albumName.toLowerCase());
+            statement.setInt(2, year);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                int crewId = results.getInt("PeopleInvolved_ID");
+                crewIds.add(crewId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // add producer
+        sql = "SELECT DISTINCT Producer_ID FROM Music WHERE LOWER(AlbumName) = ? AND YEAR = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, albumName.toLowerCase());
+            statement.setInt(2, year);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                int crewId = results.getInt("Producer_ID");
+                crewIds.add(crewId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return crewIds;
     }
 
     public static Person getMusicCrew(Connection connection, String albumName, int year, String trackName,
@@ -286,6 +391,24 @@ public class DatabaseSelector {
         return movie;
     }
 
+    public static List<Integer> getMovieCrewIds(Connection connection, String movieName, int year) {
+        List<Integer> crewIds = new ArrayList<>();
+        String sql = "SELECT PeopleInvolved_ID FROM CrewMember WHERE LOWER(MovieName) = ? AND Year = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, movieName.toLowerCase());
+            statement.setInt(2, year);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                int crewId = results.getInt("PeopleInvolved_ID");
+                crewIds.add(crewId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return crewIds;
+    }
+
     public static MovieCrew getMovieCrew(Connection connection, int personId, String movieName, int year, int roleId) {
         MovieCrew crew = null;
         try {
@@ -336,6 +459,24 @@ public class DatabaseSelector {
             e.printStackTrace();
         }
         return award;
+    }
+
+    public static boolean hasMovieAward(Connection connection, int personId, String movieName, int year) {
+        boolean hasAward = false;
+        String sql = "SELECT * FROM Award WHERE PeopleInvolved_ID = ? AND MovieName = ? And Year = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, personId);
+            statement.setString(2, movieName);
+            statement.setInt(3, year);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                hasAward = true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return hasAward;
     }
 
 }

@@ -10,6 +10,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import com.hl.exceptions.NameFormatException;
+import com.hl.gui.HomeLibrary;
 import com.hl.record.Person;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
@@ -43,9 +45,13 @@ public class MusicDialog extends JDialog {
 
     /**
      * Create the dialog.
+     * @param insertRecord 
      */
-    public MusicDialog(JFrame parentFrame) {
+    public MusicDialog(JFrame parentFrame, int mode) {
         super(parentFrame, "Insert Music Album", true);
+        if (mode == HomeLibrary.UPDATE_RECORD) {
+            setTitle("Update Music Album");
+        }
         setResizable(false);
         setBounds(100, 100, 450, 470);
         getContentPane().setLayout(new BorderLayout());
@@ -210,8 +216,10 @@ public class MusicDialog extends JDialog {
             return;
         }
         // attempt to parse producer
-        Person producer = Person.parseName(producerText);
-        if (producer == null) {
+        Person producer;
+        try {
+            producer = Person.parseName(producerText);
+        } catch (NameFormatException e) {
             String error = "Producer name is not a proper name.";
             JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             return;

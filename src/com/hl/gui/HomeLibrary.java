@@ -11,6 +11,9 @@ import java.awt.event.ActionListener;
 
 public class HomeLibrary extends JFrame {
 
+    public static final int INSERT_RECORD = 0;
+    public static final int UPDATE_RECORD = 1;
+
     /**
      * Generated serial version UID.
      */
@@ -46,7 +49,7 @@ public class HomeLibrary extends JFrame {
         insertMusicItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                openInsertMusicDialog();
+                handleInsertMusic();
             }
         });
         insertDataMenu.add(insertMusicItem);
@@ -55,14 +58,14 @@ public class HomeLibrary extends JFrame {
         insertMovieItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                openInsertMovieDialog();
+                handleInsertMovie();
             }
         });
         insertDataMenu.add(insertMovieItem);
         insertBookItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                openInsertBookDialog();
+                handleInsertBook();
             }
         });
 
@@ -70,6 +73,11 @@ public class HomeLibrary extends JFrame {
         dataMenu.add(updateDataItem);
 
         JMenuItem removeDataItem = new JMenuItem("Remove");
+        removeDataItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent arg0) {
+                handleRemoveItem();
+            }
+        });
         dataMenu.add(removeDataItem);
 
         JMenu viewMenu = new JMenu("View");
@@ -77,6 +85,12 @@ public class HomeLibrary extends JFrame {
         menuBar.add(viewMenu);
 
         JMenuItem queryViewItem = new JMenuItem("Query");
+        queryViewItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleQuery();
+            }
+        });
         viewMenu.add(queryViewItem);
 
         JMenu reportMenu = new JMenu("Report");
@@ -84,10 +98,94 @@ public class HomeLibrary extends JFrame {
         menuBar.add(reportMenu);
 
         JMenuItem reportItem1 = new JMenuItem("Author's Publications");
+        reportItem1.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(1);
+            }
+        });
         reportMenu.add(reportItem1);
 
         JMenuItem reportItem2 = new JMenuItem("Publication in one Year");
+        reportItem2.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(2);
+            }
+        });
         reportMenu.add(reportItem2);
+
+        JMenuItem reportItem3 = new JMenuItem("Books with Similar Topic");
+        reportItem3.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(3);
+            }
+        });
+        reportMenu.add(reportItem3);
+
+        JMenuItem reportItem4 = new JMenuItem("Frequent Publishers");
+        reportItem4.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(4);
+            }
+        });
+        reportMenu.add(reportItem4);
+
+        JMenuItem reportItem5 = new JMenuItem("Most Popular Subjects");
+        reportItem5.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(5);
+            }
+        });
+        reportMenu.add(reportItem5);
+
+        JMenuItem reportItem6 = new JMenuItem("Multi Skills Movie Crew");
+        reportItem6.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(6);
+            }
+        });
+        reportMenu.add(reportItem6);
+
+        JMenuItem reportItem7 = new JMenuItem("Award Winning Movies");
+        reportItem7.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(7);
+            }
+        });
+        reportMenu.add(reportItem7);
+
+        JMenuItem reportItem8 = new JMenuItem("Music with Similar Name");
+        reportItem8.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(8);
+            }
+        });
+        reportMenu.add(reportItem8);
+
+        JMenuItem reportItem9 = new JMenuItem("Multi Skills Music Crew");
+        reportItem9.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(9);
+            }
+        });
+        reportMenu.add(reportItem9);
+
+        JMenuItem reportItem10 = new JMenuItem("Similar Names");
+        reportItem10.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleReport(10);
+            }
+        });
+        reportMenu.add(reportItem10);
 
         JPanel mainPanel = new JPanel();
         FlowLayout fl_mainPanel = (FlowLayout) mainPanel.getLayout();
@@ -135,34 +233,56 @@ public class HomeLibrary extends JFrame {
 
     }
 
-    private void openInsertBookDialog() {
+    protected void handleQuery() {
         try {
-            BookDialog dialog = new BookDialog(this);
+            QueryDialog dialog = new QueryDialog(this);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setVisible(true);
-            dialog.setLocationRelativeTo(null);
+            dialog.setLocationRelativeTo(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void openInsertMusicDialog() {
+    protected void handleRemoveItem() {
+        RemoveDialog dialog = new RemoveDialog(this);
+    }
+
+    private void handleInsertBook() {
         try {
-            MusicDialog dialog = new MusicDialog(this);
+            BookDialog dialog = new BookDialog(this, INSERT_RECORD);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setVisible(true);
+            dialog.setLocationRelativeTo(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void openInsertMovieDialog() {
+    private void handleInsertMusic() {
         try {
-            MovieDialog dialog = new MovieDialog(this);
+            MusicDialog dialog = new MusicDialog(this, INSERT_RECORD);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setVisible(true);
+            dialog.setLocationRelativeTo(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    private void handleInsertMovie() {
+        try {
+            MovieDialog dialog = new MovieDialog(this, INSERT_RECORD);
+            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            dialog.setVisible(true);
+            dialog.setLocationRelativeTo(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleReport(int reportNumber) {
+        ReportDialog dialog = new ReportDialog(this, reportNumber);
+    }
+
 }
