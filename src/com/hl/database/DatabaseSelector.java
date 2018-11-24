@@ -321,19 +321,24 @@ public class DatabaseSelector {
     public static Person getMusicCrew(Connection connection, String albumName, int year, String trackName,
             String musicRole) {
         Person crew = null;
-        boolean isSongwriter = musicRole.startsWith("S");
-        boolean isComposer = musicRole.startsWith("C");
-        boolean isArranger = musicRole.startsWith("A");
-        String sql = "SELECT PeopleInvolved_ID FROM MusicSinger WHERE AlbumName = ? AND Year = ? AND MusicName = ? "
-                + "AND IsSongwriter = ? And IsComposer = ? And IsArranger = ?";
+        String sql = "SELECT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE AlbumName = ? AND Year = ? AND MusicName = ?";
+        // if song writer
+        if (musicRole.startsWith("S")) {
+            sql += " AND isSongwriter";
+        }
+        // if composer
+        if (musicRole.startsWith("C")) {
+            sql += " AND isComposer";
+        }
+        // if arranger
+        if (musicRole.startsWith("A")) {
+            sql += " AND isArranger";
+        }
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, albumName);
             statement.setInt(2, year);
             statement.setString(3, trackName);
-            statement.setBoolean(4, isSongwriter);
-            statement.setBoolean(5, isComposer);
-            statement.setBoolean(6, isArranger);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 int personId = results.getInt("PeopleInvolved_ID");
@@ -343,6 +348,25 @@ public class DatabaseSelector {
             e.printStackTrace();
         }
         return crew;
+    }
+
+    public static boolean hasMusicCrew(Connection connection, String albumName, int year, String trackName, int personId) {
+        String sql = "SELECT * FROM PeopleInvolvedMusic WHERE LOWER(AlbumName) = ? "
+                + "AND Year = ? AND LOWER(MusicName) = ? And PeopleInvolved_ID = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, albumName.toLowerCase());
+            statement.setInt(2, year);
+            statement.setString(3, trackName.toLowerCase());
+            statement.setInt(4, personId);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public static List<Person> getMusicSingers(Connection connection, String albumName, int year, String trackName) {
@@ -462,7 +486,6 @@ public class DatabaseSelector {
     }
 
     public static boolean hasMovieAward(Connection connection, int personId, String movieName, int year) {
-        boolean hasAward = false;
         String sql = "SELECT * FROM Award WHERE PeopleInvolved_ID = ? AND MovieName = ? And Year = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
@@ -471,12 +494,12 @@ public class DatabaseSelector {
             statement.setInt(3, year);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
-                hasAward = true;
+                return true;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return hasAward;
+        return false;
     }
 
 }

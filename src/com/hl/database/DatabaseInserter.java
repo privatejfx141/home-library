@@ -229,6 +229,9 @@ public class DatabaseInserter {
 
     public static int insertMusicCrew(Connection connection, MusicAlbum album, MusicTrack track, Person crew,
             String musicRole) throws DatabaseInsertException {
+        String albumName = album.getName();
+        int year = album.getYear();
+        String trackName = track.getName();
         // get subtype discriminator
         boolean isSongwriter = musicRole.startsWith("S");
         boolean isComposer = musicRole.startsWith("C");
@@ -238,14 +241,26 @@ public class DatabaseInserter {
         if (personId == -1) {
             personId = insertPerson(connection, crew);
         }
+        if (DatabaseSelector.hasMusicCrew(connection, albumName, year, trackName, personId)) {
+            if (isSongwriter) {
+                DatabaseUpdater.updateMusicSongwriter(connection, albumName, year, trackName, personId, isSongwriter);
+            }
+            if (isComposer) {
+                DatabaseUpdater.updateMusicComposer(connection, albumName, year, trackName, personId, isComposer);
+            }
+            if (isArranger) {
+                DatabaseUpdater.updateMusicArranger(connection, albumName, year, trackName, personId, isArranger);
+            }
+            return personId;
+        }
         // prepare SQL statement
         String sql = "INSERT INTO PeopleInvolvedMusic (AlbumName, Year, MusicName, PeopleInvolved_ID, "
                 + "IsSongwriter, IsComposer, IsArranger) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, album.getName());
-            statement.setInt(2, album.getYear());
-            statement.setString(3, track.getName());
+            statement.setString(1, albumName);
+            statement.setInt(2, year);
+            statement.setString(3, trackName);
             statement.setInt(4, personId);
             statement.setBoolean(5, isSongwriter);
             statement.setBoolean(6, isComposer);

@@ -1,4 +1,4 @@
-package com.hl.gui;
+package com.hl.gui.data;
 
 import java.sql.Connection;
 
@@ -11,30 +11,34 @@ import com.hl.database.DatabaseSelector;
 
 public class RemoveDialog {
 
+    private JFrame parentFrame;
+
     public RemoveDialog(JFrame parentFrame) {
-        handleRemoveItem(parentFrame);
+        this.parentFrame = parentFrame;
+        String product = promptProduct();
+        deleteProductFromDatabase(product);
     }
 
-    public void handleRemoveItem(JFrame parentFrame) {
-        String prompt = "Enter the name of a product (book, music album, movie) to delete:";
+    public String promptProduct() {
+        String prompt = "Enter the name of a product (book, music album, movie) to remove:";
         String product = JOptionPane.showInputDialog(parentFrame, prompt);
         // if cancelled
         if (product == null) {
-            return;
+            return null;
         }
         // if any characters were entered
         product = product.trim();
         if (product.isEmpty()) {
             String error = "Product name cannot be empty.";
             JOptionPane.showMessageDialog(parentFrame, error, "Remove Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            return null;
         }
-        deleteProductFromDatabase(parentFrame, product);
+        return product;
     }
-    
-    public void deleteProductFromDatabase(JFrame parentFrame, String product) {
+
+    public void deleteProductFromDatabase(String product) {
         Connection connection = DatabaseDriver.connectToDatabase();
-        String type = "";
+        String type = null;
         // if product is book
         String isbn = DatabaseSelector.getBookISBN(connection, product);
         if (isbn != null && !isbn.isEmpty()) {
@@ -59,7 +63,7 @@ public class RemoveDialog {
                 }
             }
         }
-        String error = "Product of type " + type + " and name " + product + " was successfully removed.";
-        JOptionPane.showMessageDialog(parentFrame, error, "Remove Success", JOptionPane.INFORMATION_MESSAGE);
+        String msg = "Product of type " + type + " and name " + product + " was successfully removed.";
+        JOptionPane.showMessageDialog(parentFrame, msg, "Remove Success", JOptionPane.INFORMATION_MESSAGE);
     }
 }

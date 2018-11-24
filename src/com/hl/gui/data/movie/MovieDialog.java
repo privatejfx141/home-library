@@ -1,4 +1,4 @@
-package com.hl.gui.movie;
+package com.hl.gui.data.movie;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -10,6 +10,9 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import com.hl.database.DatabaseDriver;
+import com.hl.database.DatabaseInserter;
+import com.hl.exceptions.DatabaseInsertException;
 import com.hl.gui.HomeLibrary;
 import com.hl.record.movie.Movie;
 import com.hl.record.movie.MovieCrew;
@@ -25,6 +28,7 @@ import javax.swing.JOptionPane;
 import java.awt.Color;
 import javax.swing.JScrollPane;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.awt.event.ActionEvent;
@@ -40,7 +44,40 @@ public class MovieDialog extends JDialog {
     private JTextField yearField;
     private HashMap<String, ArrayList<MovieCrew>> crewMembers = new HashMap<>();
     private HashMap<String, JList<String>> crewLists = new HashMap<>();
-    private Movie movie = null;
+    private HashMap<String, HashMap<String, MovieCrew>> crewMap = new HashMap<>();
+
+    private ActionListener cancelListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            dispose();
+        }
+    };
+
+    private ActionListener submitListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            Movie movie = parseFields();
+            if (movie == null) {
+                return;
+            }
+            if (insertMovie(movie)) {
+                dispose();
+            }
+        }
+    };
+
+    private ActionListener openDialogListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent evt) {
+            MovieCrewDialog dialog = new MovieCrewDialog(MovieDialog.this, crewMembers);
+            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            dialog.setVisible(true);
+            MovieCrew crew = dialog.getCrew();
+            if (crew != null) {
+                addCrewMember(crew);
+            }
+        }
+    };
 
     /**
      * Create the dialog.
@@ -82,12 +119,7 @@ public class MovieDialog extends JDialog {
         nameField.setColumns(10);
 
         JButton addCastButton = new JButton("Add Movie Cast Member");
-        addCastButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openMovieCrewDialog();
-            }
-        });
+        addCastButton.addActionListener(openDialogListener);
         GridBagConstraints gbc_addCastButton = new GridBagConstraints();
         gbc_addCastButton.gridwidth = 2;
         gbc_addCastButton.insets = new Insets(0, 0, 5, 0);
@@ -238,56 +270,43 @@ public class MovieDialog extends JDialog {
         getContentPane().add(buttonPane, BorderLayout.SOUTH);
 
         JButton okButton = new JButton("Submit");
-        okButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                submit();
-            }
-        });
+        okButton.addActionListener(submitListener);
         okButton.setMnemonic('s');
         okButton.setActionCommand("OK");
         buttonPane.add(okButton);
         getRootPane().setDefaultButton(okButton);
 
         JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                dispose();
-            }
-        });
+        cancelButton.addActionListener(cancelListener);
         cancelButton.setMnemonic('c');
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
     }
 
-    private void openMovieCrewDialog() {
-        try {
-            MovieCrewDialog dialog = new MovieCrewDialog(this, crewMembers);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-            dialog.setVisible(true);
-            MovieCrew MovieCrew = dialog.getCrew();
-            if (MovieCrew != null) {
-                String role = MovieCrew.getRole();
-                if (!crewMembers.containsKey(role)) {
-                    crewMembers.put(role, new ArrayList<>());
-                }
-                crewMembers.get(role).add(MovieCrew);
-                String name = MovieCrew.getFirstName();
-                if (!MovieCrew.getMiddleName().isEmpty()) {
-                    name += " " + MovieCrew.getMiddleName();
-                }
-                name += " " + MovieCrew.getLastName();
-                JList<String> roleList = crewLists.get(role);
-                ((DefaultListModel<String>) roleList.getModel()).addElement(name);
-            }
+    private void addCrewMember(MovieCrew crew) {
+        String role = crew.getRole();
+        if (!crewMembers.containsKey(role)) {
+            crewMembers.put(role, new ArrayList<>());
+        }
+        crewMembers.get(role).add(crew);
+        String name = crew.toString();
+        JList<String> roleList = crewLists.get(role);
+        DefaultListModel<String> model = ((DefaultListModel<String>) roleList.getModel());
+        model.addElement(name);
+    }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void removeCrewMember(MovieCrew crew) {
+        String role = crew.getRole();
+        if (crewMembers.containsKey(role)) {
+            crewMembers.get(role).remove(crew);
+            String name = crew.toString();
+            JList<String> roleList = crewLists.get(role);
+            DefaultListModel<String> model = ((DefaultListModel<String>) roleList.getModel());
+            model.removeElement(name);
         }
     }
 
-    private void submit() {
+    private Movie parseFields() {
         String name = nameField.getText();
         String yearText = yearField.getText();
         if (name.isEmpty() || yearText.isEmpty()) {
@@ -298,7 +317,7 @@ public class MovieDialog extends JDialog {
                 if (crewMembers.get(role) == null || crewMembers.get(role).size() == 0) {
                     String error = "There must be at least one crew member of role " + role + ".";
                     JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-                    return;
+                    return null;
                 }
             }
             int year = -1;
@@ -307,15 +326,25 @@ public class MovieDialog extends JDialog {
             } catch (NumberFormatException e) {
                 String error = "Year of release must be an integer.";
                 JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-                return;
+                return null;
             }
-            movie = new Movie(name, year, crewMembers);
-            dispose();
+            return new Movie(name, year, crewMembers);
         }
-
+        return null;
     }
 
-    public Movie getMovie() {
-        return movie;
+    private boolean insertMovie(Movie movie) {
+        Connection connection = DatabaseDriver.connectToDatabase();
+        ;
+        try {
+            DatabaseInserter.insertMovie(connection, movie);
+            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.INSERT_DB_SUCCESS_MSG);
+            return true;
+        } catch (DatabaseInsertException e) {
+            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
+            e.printStackTrace();
+        }
+        return false;
     }
+
 }

@@ -3,6 +3,7 @@ package com.hl.record.music;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hl.exceptions.NameFormatException;
 import com.hl.record.Person;
 
 public class MusicTrack {
@@ -32,9 +33,18 @@ public class MusicTrack {
             track.singers.add(singer);
             return this;
         }
+        
+        public Builder addSinger(String singer) throws NameFormatException {
+            return addSinger(Person.parseName(singer));
+        }
 
         public Builder setSongwriter(Person songwriter) {
             track.songwriter = songwriter;
+            return this;
+        }
+
+        public Builder setSongwriter(String songwriter) throws NameFormatException {
+            track.songwriter = Person.parseName(songwriter);
             return this;
         }
 
@@ -43,8 +53,18 @@ public class MusicTrack {
             return this;
         }
 
+        public Builder setComposer(String composer) throws NameFormatException {
+            track.composer = Person.parseName(composer);
+            return this;
+        }
+
         public Builder setArranger(Person arrangement) {
             track.arrangement = arrangement;
+            return this;
+        }
+
+        public Builder setArranger(String arrangement) throws NameFormatException {
+            track.arrangement = Person.parseName(arrangement);
             return this;
         }
 
@@ -105,4 +125,21 @@ public class MusicTrack {
     public String getDiskType() {
         return diskType;
     }
+
+    @Override
+    public String toString() {
+        String repr = name;
+        if (language != null && !language.isEmpty()) {
+            repr += " [" + language + "]";
+        }
+        repr += " - ";
+        for (Person singer : singers) {
+            repr += singer.toString() + ", ";
+        }
+        repr += "SW: " + songwriter.toString();
+        repr += ", CP: " + composer.toString();
+        repr += ", AG: " + arrangement.toString();
+        return repr;
+    }
+
 }

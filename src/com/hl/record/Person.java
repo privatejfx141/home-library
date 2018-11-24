@@ -8,7 +8,7 @@ public class Person {
     private String middleName = "";
     private String lastName = "";
     private String gender = "";
-
+    
     public static Person parseName(String name) throws NameFormatException {
         Person person = null;
         name = name.trim();

@@ -1,9 +1,11 @@
 package com.hl.gui;
 
 import javax.swing.*;
-import com.hl.gui.book.BookDialog;
-import com.hl.gui.movie.MovieDialog;
-import com.hl.gui.music.MusicDialog;
+
+import com.hl.gui.data.RemoveDialog;
+import com.hl.gui.data.book.BookDialog;
+import com.hl.gui.data.movie.MovieDialog;
+import com.hl.gui.data.music.MusicDialog;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -11,13 +13,18 @@ import java.awt.event.ActionListener;
 
 public class HomeLibrary extends JFrame {
 
-    public static final int INSERT_RECORD = 0;
-    public static final int UPDATE_RECORD = 1;
-
     /**
      * Generated serial version UID.
      */
     private static final long serialVersionUID = 9186575314197946439L;
+
+    public static final int INSERT_RECORD = 0;
+    public static final int UPDATE_RECORD = 1;
+
+    public static final String MANDATORY_FIELD_MSG = "All mandatory fields (in blue) must be filled in before submitting.";
+    public static final String INTEGER_FIELD_MSG = "%s must be an integer.";
+    public static final String INSERT_DB_SUCCESS_MSG = "Insertion to HL database was successful!";
+    public static final String INSERT_DB_FAILURE_MSG = "Error! Insertion to HL database was not successful.";
 
     public static void main(String args[]) {
         HomeLibrary HomeLibraryForm = new HomeLibrary();
@@ -29,6 +36,18 @@ public class HomeLibrary extends JFrame {
         HomeLibraryForm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         HomeLibraryForm.pack();
         HomeLibraryForm.setVisible(true);
+    }
+
+    public static void showSubmitMessageBox(Component parentComponent, String message) {
+        String title = "Submit Success";
+        int msgType = JOptionPane.INFORMATION_MESSAGE;
+        JOptionPane.showMessageDialog(parentComponent, message, title, msgType);
+    }
+
+    public static void showSubmitErrorMessageBox(Component parentComponent, String error) {
+        String title = "Submit Error";
+        int msgType = JOptionPane.ERROR_MESSAGE;
+        JOptionPane.showMessageDialog(parentComponent, error, title, msgType);
     }
 
     public HomeLibrary() {

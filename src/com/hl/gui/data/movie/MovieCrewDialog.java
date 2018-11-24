@@ -1,4 +1,4 @@
-package com.hl.gui.movie;
+package com.hl.gui.data.movie;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -8,6 +8,7 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import com.hl.generics.MovieRoles;
 import com.hl.record.movie.MovieCrew;
 
 import javax.swing.JLabel;
@@ -147,9 +148,14 @@ public class MovieCrewDialog extends JDialog {
         gbc_roleLabel.gridy = 4;
         contentPanel.add(roleLabel, gbc_roleLabel);
 
+        ArrayList<String> rolesList = new ArrayList<>();
+        for (MovieRoles role : MovieRoles.values()) {
+            rolesList.add(MovieRoles.getRoleName(role));
+        }
+
         roleBox = new JComboBox<String>();
         roleLabel.setLabelFor(roleBox);
-        roleBox.setModel(new DefaultComboBoxModel<String>(MovieCrew.ROLES));
+        roleBox.setModel(new DefaultComboBoxModel<String>(rolesList.toArray(new String[0])));
         GridBagConstraints gbc_roleBox = new GridBagConstraints();
         gbc_roleBox.insets = new Insets(0, 0, 5, 0);
         gbc_roleBox.fill = GridBagConstraints.HORIZONTAL;
@@ -171,7 +177,7 @@ public class MovieCrewDialog extends JDialog {
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                submit();
+                handleSubmit();
             }
         });
         submitButton.setMnemonic('s');
@@ -190,10 +196,18 @@ public class MovieCrewDialog extends JDialog {
         buttonPane.add(cancelButton);
     }
 
-    private void submit() {
-        String firstName = firstNameField.getText();
-        String middleName = middleNameField.getText();
-        String lastName = lastNameField.getText();
+    protected void handleSubmit() {
+        crew = parseFields();
+        if (crew == null) {
+            return;
+        }
+        dispose();
+    }
+
+    protected MovieCrew parseFields() {
+        String firstName = firstNameField.getText().trim();
+        String middleName = middleNameField.getText().trim();
+        String lastName = lastNameField.getText().trim();
         String role = (String) roleBox.getSelectedItem();
         String gender = (String) genderBox.getSelectedItem();
         boolean award = awardCheckBox.isSelected();
@@ -212,10 +226,10 @@ public class MovieCrewDialog extends JDialog {
                 String error = "Only at most 3 members of the role " + role + " can be added.";
                 JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
             } else {
-                crew = new MovieCrew(firstName, middleName, lastName, role, gender, award);
-                dispose();
+                return new MovieCrew(firstName, middleName, lastName, role, gender, award);
             }
         }
+        return null;
     }
 
     public MovieCrew getCrew() {
