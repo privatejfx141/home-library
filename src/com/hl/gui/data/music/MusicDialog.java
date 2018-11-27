@@ -3,6 +3,7 @@ package com.hl.gui.data.music;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -15,6 +16,8 @@ import com.hl.database.DatabaseInserter;
 import com.hl.exceptions.DatabaseInsertException;
 import com.hl.exceptions.NameFormatException;
 import com.hl.gui.HomeLibrary;
+import com.hl.gui.data.HomeLibraryProductDialog;
+import com.hl.gui.data.book.BookAuthorDialog;
 import com.hl.record.Person;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
@@ -40,7 +43,8 @@ import javax.swing.JOptionPane;
 import javax.swing.DefaultListModel;
 import javax.swing.JScrollPane;
 
-public class MusicDialog extends JDialog {
+public class MusicDialog extends HomeLibraryProductDialog {
+
     /**
      * Generated serial version UID.
      */
@@ -51,12 +55,18 @@ public class MusicDialog extends JDialog {
     private JTextField yearField;
     private JTextField producerField;
     private JList<String> trackList;
+
     private HashMap<String, MusicTrack> trackMap = new HashMap<>();
-    private ArrayList<String> trackNames = new ArrayList<>();
+    private MusicAlbum album;
+
+    public static void main(String[] args) {
+        new MusicDialog(null);
+    }
 
     private ActionListener cancelListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent evt) {
+            MusicDialog.this.album = null;
             dispose();
         }
     };
@@ -64,44 +74,112 @@ public class MusicDialog extends JDialog {
     private ActionListener submitListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            // parse field to get album data
-            MusicAlbum album = parseFields();
-            if (album == null) {
-                return;
-            }
-            // insert into database
-            if (insertMusicAlbum(album)) {
-                dispose();
-            }
+            handleSubmit();
         }
     };
 
     private ActionListener openDialogListener = new ActionListener() {
         public void actionPerformed(ActionEvent e) {
-            openMusicTrackDialog(null);
+            handleOpenDialog(null);
         }
     };
-    
+
+    private MouseAdapter listMouseAdapter = new MouseAdapter() {
+        @Override
+        public void mouseClicked(MouseEvent evt) {
+            String trackKey = trackList.getSelectedValue();
+            if (SwingUtilities.isLeftMouseButton(evt) && evt.getClickCount() == 2) {
+                // double click to update track
+                MusicTrack track = trackMap.get(trackKey);
+                handleOpenDialog(track);
+            }
+            if (SwingUtilities.isRightMouseButton(evt)) {
+                // right click to delete track
+                if (trackKey != null) {
+                    MusicTrack track = trackMap.get(trackKey);
+                    removeMusicTrack(track);
+                }
+            }
+        }
+    };
+
+    public MusicDialog(Frame parent) {
+        this(parent, null);
+    }
+
     /**
      * Create the dialog.
      * 
      * @param insertRecord
      */
-    public MusicDialog(JFrame parentFrame, int mode) {
-        super(parentFrame, "Insert Music Album", true);
-        if (mode == HomeLibrary.UPDATE_RECORD) {
-            setTitle("Update Music Album");
+    public MusicDialog(Frame parent, MusicAlbum data) {
+        super(parent, data);
+        initialize();
+        if (data != null) {
+            populateFields(data);
         }
+        setVisible(true);
+    }
+
+    private void initialize() {
+        createGUI();
+        addMandatoryField(nameField);
+        addMandatoryField(yearField);
+        addMandatoryField(producerField);
+    }
+
+    private void handleOpenDialog(MusicTrack oldTrack) {
+        ArrayList<MusicTrack> addedTracks = new ArrayList<>(trackMap.values());
+        // if updating, remove old author from check
+        if (oldTrack != null) {
+            addedTracks.remove(oldTrack);
+        }
+        MusicTrackDialog dialog = new MusicTrackDialog(this, addedTracks, oldTrack);
+        MusicTrack newTrack = dialog.getParsedData();
+        // if new track was submitted
+        if (newTrack != null) {
+            // if we are updating
+            if (oldTrack != null) {
+                removeMusicTrack(oldTrack);
+            }
+            addMusicTrack(newTrack);
+        }
+    }
+
+    private void addMusicTrack(MusicTrack track) {
+        String trackKey = track.getName();
+        trackMap.put(trackKey, track);
+        DefaultListModel<String> model = (DefaultListModel<String>) trackList.getModel();
+        model.addElement(trackKey);
+    }
+
+    private void removeMusicTrack(MusicTrack track) {
+        String trackKey = track.getName();
+        trackMap.remove(trackKey);
+        DefaultListModel<String> model = (DefaultListModel<String>) trackList.getModel();
+        model.removeElement(trackKey);
+    }
+
+    private void handleSubmit() {
+        // parse field to get album data
+        album = (MusicAlbum) parseFields();
+        if (album == null) {
+            return;
+        }
+        // insert into database
+        if (insertToDatabase(album)) {
+            dispose();
+        }
+    }
+
+    @Override
+    public void createGUI() {
         setResizable(false);
         setBounds(100, 100, 450, 470);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
         getContentPane().add(contentPanel, BorderLayout.NORTH);
 
-        createGUI();
-    }
-
-    private void createGUI() {
         GridBagLayout gbl_contentPanel = new GridBagLayout();
         gbl_contentPanel.columnWidths = new int[] { 160, 240 };
         gbl_contentPanel.rowHeights = new int[] { 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26 };
@@ -177,24 +255,7 @@ public class MusicDialog extends JDialog {
         contentPanel.add(addTrackButton, gbc_addTrackButton);
 
         trackList = new JList<String>(new DefaultListModel<String>());
-        trackList.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent evt) {
-                if (SwingUtilities.isLeftMouseButton(evt) && evt.getClickCount() == 2) {
-                    // double click to update track
-                    String oldTrackKey = trackList.getSelectedValue();
-                    MusicTrack track = trackMap.get(oldTrackKey);
-                    openMusicTrackDialog(track);
-                }
-                if (SwingUtilities.isRightMouseButton(evt)) {
-                    // right click to delete track
-                    String oldTrackKey = trackList.getSelectedValue();
-                    if (oldTrackKey != null) {
-                        MusicTrack track = trackMap.get(oldTrackKey);
-                        removeMusicTrack(track);
-                    }
-                }
-            }
-        });
+        trackList.addMouseListener(listMouseAdapter);
         JScrollPane trackListScrollPane = new JScrollPane(trackList);
         GridBagConstraints gbc_trackListScrollPane = new GridBagConstraints();
         gbc_trackListScrollPane.gridheight = 9;
@@ -221,89 +282,50 @@ public class MusicDialog extends JDialog {
         cancelButton.setMnemonic('c');
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
+
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(this);
     }
 
-    private void openMusicTrackDialog(MusicTrack oldTrack) {
-        MusicTrackDialog dialog = new MusicTrackDialog(this, oldTrack, trackNames);
-        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setVisible(true);
-        dialog.setLocationRelativeTo(null);
-        MusicTrack newTrack = dialog.getMusicTrack();
-        // if new track was submitted
-        if (newTrack != null) {
-            // if we are updating
-            if (oldTrack != null) {
-                removeMusicTrack(oldTrack);
+    @Override
+    public void populateFields(Object data) {
+        MusicAlbum album = (MusicAlbum) data;
+        nameField.setText(album.getName());
+        yearField.setText(Integer.toString(album.getYear()));
+        producerField.setText(album.getProducer().getName());
+    }
+
+    @Override
+    public MusicAlbum parseFields() {
+        if (checkMandatoryFields()) {
+            if (trackMap.isEmpty()) {
+                String error = "At least one music track must be added.";
+                HomeLibrary.showSubmitErrorMessageBox(this, error);
+                return null;
             }
-            addMusicTrack(newTrack);
+            try {
+                MusicAlbum album = new MusicAlbum.Builder() //
+                        .setName(nameField.getText()) //
+                        .setProducer(producerField.getText()) //
+                        .setYear(yearField.getText()) //
+                        .addTracks(trackMap.values()) //
+                        .create();
+                return album;
+            } catch (NumberFormatException | NameFormatException e) {
+                HomeLibrary.showSubmitErrorMessageBox(this, e.getMessage());
+            }
         }
+        return null;
     }
 
-    private void handleSubmit() {
-        // parse field to get album data
-        MusicAlbum album = parseFields();
-        if (album == null) {
-            return;
-        }
-        // insert into database
-        if (insertMusicAlbum(album)) {
-            dispose();
-        }
+    @Override
+    public MusicAlbum getParsedData() {
+        return album;
     }
 
-    private MusicAlbum parseFields() {
-        String name = nameField.getText();
-        String producerText = producerField.getText();
-        String yearText = yearField.getText();
-        // check mandatory fields
-        if (name.isEmpty() || producerText.isEmpty() || yearText.isEmpty()) {
-            String error = "All mandatory fields (in blue) must be filled in before submitting.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        // attempt to parse year
-        int year = -1;
-        try {
-            year = Integer.parseInt(yearText);
-        } catch (NumberFormatException e) {
-            String error = "Release Year must be an integer.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        // attempt to parse producer
-        Person producer;
-        try {
-            producer = Person.parseName(producerText);
-        } catch (NameFormatException e) {
-            String error = "Producer name is not a proper name.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        // check music tracks
-        if (trackMap.isEmpty()) {
-            String error = "Music album must have at least 1 music track.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        return new MusicAlbum(name, year, producer, new ArrayList<>(trackMap.values()));
-    }
-
-    private void addMusicTrack(MusicTrack track) {
-        trackMap.put(track.toString(), track);
-        DefaultListModel<String> model = (DefaultListModel<String>) trackList.getModel();
-        model.addElement(track.toString());
-        trackNames.add(track.getName().toLowerCase());
-    }
-
-    private void removeMusicTrack(MusicTrack track) {
-        String trackKey = track.toString();
-        trackMap.remove(track.toString());
-        DefaultListModel<String> model = (DefaultListModel<String>) trackList.getModel();
-        model.removeElement(trackKey);
-        trackNames.remove(track.getName().toLowerCase());
-    }
-
-    private boolean insertMusicAlbum(MusicAlbum album) {
+    @Override
+    public boolean insertToDatabase(Object data) {
+        MusicAlbum album = (MusicAlbum) data;
         Connection connection = DatabaseDriver.connectToDatabase();
         try {
             int result = DatabaseInserter.insertMusicAlbum(connection, album);
@@ -323,6 +345,12 @@ public class MusicDialog extends JDialog {
                 e.printStackTrace();
             }
         }
+        return false;
+    }
+
+    @Override
+    public boolean updateToDatabase(Object data) {
+        // TODO Auto-generated method stub
         return false;
     }
 

@@ -2,6 +2,7 @@ package com.hl.gui.data.music;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dialog;
 import java.awt.FlowLayout;
 
 import javax.swing.JButton;
@@ -11,11 +12,11 @@ import javax.swing.border.EmptyBorder;
 
 import com.hl.exceptions.NameFormatException;
 import com.hl.gui.HomeLibrary;
+import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.Person;
 import com.hl.record.music.MusicTrack;
 
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
@@ -27,7 +28,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 
-public class MusicTrackDialog extends JDialog {
+public class MusicTrackDialog extends HomeLibraryProductDialog {
 
     /**
      * Generated serial version UID.
@@ -44,45 +45,54 @@ public class MusicTrackDialog extends JDialog {
     private JTextField singer2Field = new JTextField();
     private JComboBox<String> diskTypeComboBox = new JComboBox<>(
             new DefaultComboBoxModel<String>(new String[] { "CD", "Vinyl" }));
-    private ArrayList<String> trackNames;
-    private MusicTrack musicTrack;
+
+    private List<MusicTrack> addedTracks;
+    private MusicTrack track;
 
     public static void main(String args[]) {
-        MusicTrackDialog dialog = new MusicTrackDialog(null, null, new ArrayList<>());
-        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setVisible(true);
-        dialog.setLocationRelativeTo(null);
+        new MusicTrackDialog(null);
     }
 
-    /**
-     * Create the dialog.
-     * 
-     * @param parentDialog
-     * @param track
-     * @param trackNames
-     */
-    public MusicTrackDialog(MusicDialog parentDialog, MusicTrack track, ArrayList<String> trackNames) {
-        super(parentDialog, "Test", true);
-        // set track names to keep track of which tracks are already added
-        this.trackNames = trackNames;
+    public MusicTrackDialog(Dialog parent) {
+        this(parent, new ArrayList<>());
+    }
 
+    public MusicTrackDialog(Dialog parent, MusicTrack data) {
+        this(parent, new ArrayList<>(), data);
+    }
+
+    public MusicTrackDialog(Dialog parent, List<MusicTrack> addedTracks) {
+        this(parent, addedTracks, null);
+    }
+
+    public MusicTrackDialog(Dialog parent, List<MusicTrack> addedTracks, MusicTrack data) {
+        super(parent, data);
+        initialize();
+        this.addedTracks = addedTracks;
+        if (data != null) {
+            populateFields(data);
+        }
+        setVisible(true);
+    }
+
+    private void initialize() {
+        createGUI();
+        addMandatoryField(nameField);
+        addMandatoryField(singer1Field);
+        addMandatoryField(songwriterField);
+        addMandatoryField(composerField);
+        addMandatoryField(arrangementField);
+    }
+
+    @Override
+    public void createGUI() {
         setResizable(false);
-        setTitle("Insert Album Track");
+        setTitle("Submit Album Track");
         setBounds(100, 100, 450, 320);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
         getContentPane().add(contentPanel, BorderLayout.NORTH);
 
-        createGUI();
-
-        // if update, pre-populate fields
-        if (track != null) {
-            trackNames.remove(track.getName().toLowerCase());
-            prepopulateFields(track);
-        }
-    }
-
-    private void createGUI() {
         GridBagLayout gbl_contentPanel = new GridBagLayout();
         gbl_contentPanel.columnWidths = new int[] { 160, 240 };
         gbl_contentPanel.rowHeights = new int[] { 26, 26, 26, 26, 26, 26, 26 };
@@ -247,104 +257,85 @@ public class MusicTrackDialog extends JDialog {
         cancelButton.setMnemonic('c');
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
+
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(this);
     }
 
-    private void prepopulateFields(MusicTrack track) {
-        nameField.setText(track.getName());
-        languageField.setText(track.getLanguage());
-        songwriterField.setText(track.getSongwriter().toString());
-        composerField.setText(track.getComposer().toString());
-        arrangementField.setText(track.getArrangement().toString());
-        List<Person> singers = track.getSingers();
-        singer1Field.setText(singers.get(0).toString());
-        if (singers.size() == 2) {
-            singer2Field.setText(singers.get(1).toString());
-        }
-        diskTypeComboBox.setSelectedItem(track.getDiskType());
-    }
-
-    private MusicTrack parseFields() {
-        String name = nameField.getText().trim();
-        String language = languageField.getText().trim();
-        String singer1Text = singer1Field.getText().trim();
-        String singer2Text = singer2Field.getText().trim();
-        String songwriterText = songwriterField.getText().trim();
-        String composerText = composerField.getText().trim();
-        String arrangementText = arrangementField.getText().trim();
-        String diskType = (String) diskTypeComboBox.getSelectedItem();
-        // check for mandatory fields
-        if (name.isEmpty() || singer1Text.isEmpty() || songwriterText.isEmpty() || composerText.isEmpty()
-                || arrangementText.isEmpty()) {
-            String error = HomeLibrary.MANDATORY_FIELD_MSG;
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        // check if track name already exists
-        if (trackNames.contains(name.toLowerCase())) {
-            String error = "Track " + name + " already exists in album.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        // parse people
-        Person singer1;
-        try {
-            singer1 = Person.parseName(singer1Text);
-        } catch (NameFormatException e) {
-            String error = "Singer 1 name is not a proper name.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        Person singer2 = null;
-        if (!singer2Text.isEmpty()) {
+    @Override
+    public MusicTrack parseFields() {
+        if (checkMandatoryFields()) {
             try {
-                singer2 = Person.parseName(singer2Text);
+                MusicTrack track = new MusicTrack.Builder() //
+                        .setName(nameField.getText()) //
+                        .setLanguage(languageField.getText()) //
+                        .addSinger(singer1Field.getText()) //
+                        .addSinger(singer2Field.getText()) //
+                        .setSongwriter(songwriterField.getText()) //
+                        .setComposer(composerField.getText()) //
+                        .setArranger(arrangementField.getText()) //
+                        .setDiskType((String) diskTypeComboBox.getSelectedItem()) //
+                        .create();
+                return track;
             } catch (NameFormatException e) {
-                String error = "Singer 2 name is not a proper name.";
-                JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-                return null;
+                HomeLibrary.showSubmitErrorMessageBox(this, e.getMessage());
             }
         }
-        Person songwriter;
-        try {
-            songwriter = Person.parseName(songwriterText);
-        } catch (NameFormatException e) {
-            String error = "Song writer name is not a proper name.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        Person composer;
-        try {
-            composer = Person.parseName(composerText);
-        } catch (NameFormatException e) {
-            String error = "Composer name is not a proper name.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        Person arrangement;
-        try {
-            arrangement = Person.parseName(arrangementText);
-        } catch (NameFormatException e) {
-            String error = "Arrangement name is not a proper name.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-        MusicTrack track = new MusicTrack(name, language, songwriter, composer, arrangement, diskType);
-        track.addSinger(singer1);
-        if (singer2 != null) {
-            track.addSinger(singer2);
-        }
-        return track;
+        return null;
     }
 
     private void handleSubmit() {
-        musicTrack = parseFields();
-        if (musicTrack != null) {
+        track = parseFields();
+        if (track == null) {
+            return;
+        } else {
+            // check if track was already added
+            String trackName = track.getName();
+            for (MusicTrack addedTrack : addedTracks) {
+                String addTrackName = addedTrack.getName();
+                if (trackName.equalsIgnoreCase(addTrackName)) {
+                    String error = "Track already exists.";
+                    HomeLibrary.showSubmitErrorMessageBox(this, error);
+                    return;
+                }
+            }
+            System.out.println("Track dialog: " + trackName + " submitted.");
             dispose();
         }
     }
 
-    public MusicTrack getMusicTrack() {
-        return musicTrack;
+    @Override
+    public void populateFields(Object data) {
+        MusicTrack track = (MusicTrack) data;
+        setTitle(getTitle() + " (update)");
+        nameField.setText(track.getName());
+        languageField.setText(track.getLanguage());
+        songwriterField.setText(track.getSongwriter().getName());
+        composerField.setText(track.getComposer().getName());
+        arrangementField.setText(track.getArrangement().getName());
+        List<Person> singers = track.getSingers();
+        singer1Field.setText(singers.get(0).getName());
+        if (singers.size() == 2) {
+            singer2Field.setText(singers.get(1).getName());
+        }
+        diskTypeComboBox.setSelectedItem(track.getDiskType());
+    }
+
+    @Override
+    public MusicTrack getParsedData() {
+        return track;
+    }
+
+    @Override
+    public boolean insertToDatabase(Object data) {
+        // nothing to do here
+        return true;
+    }
+
+    @Override
+    public boolean updateToDatabase(Object data) {
+        // nothing to do here
+        return true;
     }
 
 }

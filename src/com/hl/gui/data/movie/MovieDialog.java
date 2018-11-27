@@ -2,11 +2,11 @@ package com.hl.gui.data.movie;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
@@ -14,26 +14,30 @@ import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
 import com.hl.exceptions.DatabaseInsertException;
 import com.hl.gui.HomeLibrary;
+import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.movie.Movie;
 import com.hl.record.movie.MovieCrew;
+import com.hl.record.music.MusicTrack;
 
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
-
 import java.awt.Color;
 import javax.swing.JScrollPane;
-import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.ActionEvent;
 
-public class MovieDialog extends JDialog {
+public class MovieDialog extends HomeLibraryProductDialog {
     /**
      * Generated serial version UID.
      */
@@ -42,53 +46,138 @@ public class MovieDialog extends JDialog {
     private final JPanel contentPanel = new JPanel();
     private JTextField nameField;
     private JTextField yearField;
-    private HashMap<String, ArrayList<MovieCrew>> crewMembers = new HashMap<>();
+
+    JList<String> castList;
+    JList<String> directorList;
+    JList<String> producerList;
+    JList<String> scriptwriterList;
+    JList<String> composerList;
+    JList<String> editorList;
+    JList<String> designerList;
+
     private HashMap<String, JList<String>> crewLists = new HashMap<>();
-    private HashMap<String, HashMap<String, MovieCrew>> crewMap = new HashMap<>();
-
-    private ActionListener cancelListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent evt) {
-            dispose();
-        }
-    };
-
-    private ActionListener submitListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent evt) {
-            Movie movie = parseFields();
-            if (movie == null) {
-                return;
-            }
-            if (insertMovie(movie)) {
-                dispose();
-            }
-        }
-    };
-
-    private ActionListener openDialogListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent evt) {
-            MovieCrewDialog dialog = new MovieCrewDialog(MovieDialog.this, crewMembers);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-            dialog.setVisible(true);
-            MovieCrew crew = dialog.getCrew();
-            if (crew != null) {
-                addCrewMember(crew);
-            }
-        }
-    };
+    private HashMap<JList<String>, String> listToDescriptor = new HashMap<>();
 
     /**
-     * Create the dialog.
+     * Map of role descriptor -> Map of crew member key -> crew member
      */
-    public MovieDialog(JFrame parentFrame, int mode) {
-        super(parentFrame, "Insert Movie", true);
-        if (mode == HomeLibrary.UPDATE_RECORD) {
-            setTitle("Update Movie");
+    private HashMap<String, HashMap<String, MovieCrew>> crewMap = new HashMap<>();
+    private Movie movie;
+
+    private MouseAdapter listMouseAdapter = new MouseAdapter() {
+        @Override
+        public void mouseClicked(MouseEvent evt) {
+            @SuppressWarnings("unchecked")
+            JList<String> crewList = (JList<String>) evt.getSource();
+            String key = crewList.getSelectedValue();
+            String roleDescriptor = listToDescriptor.get(crewList);
+            if (SwingUtilities.isLeftMouseButton(evt) && evt.getClickCount() == 2) {
+                // double click to update track
+                MovieCrew crew = crewMap.get(roleDescriptor).get(key);
+                handleOpenDialog(crew);
+            }
+            if (SwingUtilities.isRightMouseButton(evt)) {
+                // right click to delete track
+                MovieCrew crew = crewMap.get(roleDescriptor).get(key);
+                removeCrewMember(crew);
+            }
         }
+    };
+
+    public static void main(String[] args) {
+        new MovieDialog(null);
+    }
+
+    /**
+     * @wbp.parser.constructor
+     */
+    public MovieDialog(Frame parent) {
+        this(parent, null);
+    }
+
+    public MovieDialog(Frame parent, Movie data) {
+        super(parent, data);
+        initialize();
+        setVisible(true);
+    }
+
+    private void initialize() {
+        createGUI();
+        addMandatoryField(nameField);
+        addMandatoryField(yearField);
+        crewLists.put(MovieCrew.CAST, castList);
+        crewLists.put(MovieCrew.DIRECTOR, directorList);
+        crewLists.put(MovieCrew.PRODUCER, producerList);
+        crewLists.put(MovieCrew.SCRIPTWRITER, scriptwriterList);
+        crewLists.put(MovieCrew.COMPOSER, composerList);
+        crewLists.put(MovieCrew.EDITOR, editorList);
+        crewLists.put(MovieCrew.COSTUME_DESIGNER, designerList);
+
+        listToDescriptor.put(castList, MovieCrew.CAST);
+        listToDescriptor.put(directorList, MovieCrew.DIRECTOR);
+        listToDescriptor.put(producerList, MovieCrew.PRODUCER);
+        listToDescriptor.put(scriptwriterList, MovieCrew.SCRIPTWRITER);
+        listToDescriptor.put(composerList, MovieCrew.COMPOSER);
+        listToDescriptor.put(editorList, MovieCrew.EDITOR);
+        listToDescriptor.put(designerList, MovieCrew.COSTUME_DESIGNER);
+
+        for (String roleDescriptor : MovieCrew.ROLES) {
+            crewMap.put(roleDescriptor, new HashMap<String, MovieCrew>());
+        }
+    }
+
+    private void handleOpenDialog(MovieCrew oldCrew) {
+        // create added crew members map for checking
+        HashMap<String, ArrayList<MovieCrew>> addedMembers = new HashMap<>();
+        for (String roleDescriptor : crewMap.keySet()) {
+            HashMap<String, MovieCrew> roleMembers = crewMap.get(roleDescriptor);
+            addedMembers.put(roleDescriptor, new ArrayList<MovieCrew>(roleMembers.values()));
+        }
+        // if updating, remove old member
+        if (oldCrew != null) {
+            String roleDescriptor = oldCrew.getRole();
+            addedMembers.get(roleDescriptor).remove(oldCrew);
+        }
+        MovieCrewDialog dialog = new MovieCrewDialog(this, addedMembers, oldCrew);
+        MovieCrew newCrew = dialog.getParsedData();
+        // if new crew member was submitted
+        if (newCrew != null) {
+            // if updating, remove old crew member to be replaced
+            if (oldCrew != null) {
+                removeCrewMember(oldCrew);
+            }
+            addCrewMember(newCrew);
+        }
+    }
+
+    private void handleSubmit() {
+
+    }
+
+    private void addCrewMember(MovieCrew crew) {
+        String role = crew.getRole();
+        String key = crew.toString();
+        // add to crew map
+        crewMap.get(role).put(key, crew);
+        // add to JLists
+        DefaultListModel<String> model = (DefaultListModel<String>) crewLists.get(role).getModel();
+        model.addElement(key);
+    }
+
+    private void removeCrewMember(MovieCrew crew) {
+        String role = crew.getRole();
+        String key = crew.getName();
+        // remove from crew map
+        crewMap.get(role).remove(key);
+        // remove from JLists
+        DefaultListModel<String> model = (DefaultListModel<String>) crewLists.get(role).getModel();
+        model.removeElement(key);
+    }
+
+    @Override
+    public void createGUI() {
         setResizable(false);
-        setBounds(100, 100, 450, 770);
+        setBounds(100, 100, 450, 750);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
         getContentPane().add(contentPanel, BorderLayout.NORTH);
@@ -119,7 +208,13 @@ public class MovieDialog extends JDialog {
         nameField.setColumns(10);
 
         JButton addCastButton = new JButton("Add Movie Cast Member");
-        addCastButton.addActionListener(openDialogListener);
+        addCastButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                handleOpenDialog(null);
+            }
+        });
+        addCastButton.setMnemonic('a');
         GridBagConstraints gbc_addCastButton = new GridBagConstraints();
         gbc_addCastButton.gridwidth = 2;
         gbc_addCastButton.insets = new Insets(0, 0, 5, 0);
@@ -135,8 +230,8 @@ public class MovieDialog extends JDialog {
         gbc_directorLabel.gridy = 2;
         contentPanel.add(directorLabel, gbc_directorLabel);
 
-        JList<String> directorList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Director", directorList);
+        directorList = new JList<String>(new DefaultListModel<String>());
+        directorList.addMouseListener(listMouseAdapter);
         GridBagConstraints gbc_directorList = new GridBagConstraints();
         gbc_directorList.insets = new Insets(0, 0, 5, 0);
         gbc_directorList.fill = GridBagConstraints.BOTH;
@@ -152,8 +247,8 @@ public class MovieDialog extends JDialog {
         gbc_scriptwriterLabel.gridy = 3;
         contentPanel.add(scriptwriterLabel, gbc_scriptwriterLabel);
 
-        JList<String> scriptwriterList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Scriptwriter", scriptwriterList);
+        scriptwriterList = new JList<String>(new DefaultListModel<String>());
+        scriptwriterList.addMouseListener(listMouseAdapter);
         GridBagConstraints gbc_scriptwriterList = new GridBagConstraints();
         gbc_scriptwriterList.insets = new Insets(0, 0, 5, 0);
         gbc_scriptwriterList.fill = GridBagConstraints.BOTH;
@@ -169,8 +264,8 @@ public class MovieDialog extends JDialog {
         gbc_producerLabel.gridy = 4;
         contentPanel.add(producerLabel, gbc_producerLabel);
 
-        JList<String> producerList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Producer", producerList);
+        producerList = new JList<String>(new DefaultListModel<String>());
+        producerList.addMouseListener(listMouseAdapter);
         GridBagConstraints gbc_producerList = new GridBagConstraints();
         gbc_producerList.insets = new Insets(0, 0, 5, 0);
         gbc_producerList.fill = GridBagConstraints.BOTH;
@@ -186,8 +281,8 @@ public class MovieDialog extends JDialog {
         gbc_composerLabel.gridy = 5;
         contentPanel.add(composerLabel, gbc_composerLabel);
 
-        JList<String> composerList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Composer", composerList);
+        composerList = new JList<String>(new DefaultListModel<String>());
+        composerList.addMouseListener(listMouseAdapter);
         GridBagConstraints gbc_composerList = new GridBagConstraints();
         gbc_composerList.insets = new Insets(0, 0, 5, 0);
         gbc_composerList.fill = GridBagConstraints.BOTH;
@@ -203,8 +298,8 @@ public class MovieDialog extends JDialog {
         gbc_editorLabel.gridy = 6;
         contentPanel.add(editorLabel, gbc_editorLabel);
 
-        JList<String> editorList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Editor", editorList);
+        editorList = new JList<String>(new DefaultListModel<String>());
+        editorList.addMouseListener(listMouseAdapter);
         GridBagConstraints gbc_editorList = new GridBagConstraints();
         gbc_editorList.insets = new Insets(0, 0, 5, 0);
         gbc_editorList.fill = GridBagConstraints.BOTH;
@@ -220,8 +315,8 @@ public class MovieDialog extends JDialog {
         gbc_designerLabel.gridy = 7;
         contentPanel.add(designerLabel, gbc_designerLabel);
 
-        JList<String> designerList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Costume designer", designerList);
+        designerList = new JList<String>(new DefaultListModel<String>());
+        designerList.addMouseListener(listMouseAdapter);
         GridBagConstraints gbc_designerList = new GridBagConstraints();
         gbc_designerList.insets = new Insets(0, 0, 5, 0);
         gbc_designerList.fill = GridBagConstraints.BOTH;
@@ -244,7 +339,7 @@ public class MovieDialog extends JDialog {
         gbc_castScrollPane.gridx = 1;
         gbc_castScrollPane.gridy = 8;
         contentPanel.add(castScrollPane, gbc_castScrollPane);
-        JList<String> castList = new JList<String>(new DefaultListModel<String>());
+        castList = new JList<String>(new DefaultListModel<String>());
         crewLists.put("Cast", castList);
         castScrollPane.setViewportView(castList);
 
@@ -269,73 +364,71 @@ public class MovieDialog extends JDialog {
         buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
         getContentPane().add(buttonPane, BorderLayout.SOUTH);
 
-        JButton okButton = new JButton("Submit");
-        okButton.addActionListener(submitListener);
-        okButton.setMnemonic('s');
-        okButton.setActionCommand("OK");
-        buttonPane.add(okButton);
-        getRootPane().setDefaultButton(okButton);
+        JButton submitButton = new JButton("Submit");
+        submitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleSubmit();
+            }
+        });
+        submitButton.setMnemonic('s');
+        submitButton.setActionCommand("OK");
+        buttonPane.add(submitButton);
+        getRootPane().setDefaultButton(submitButton);
 
         JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(cancelListener);
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                dispose();
+            }
+        });
         cancelButton.setMnemonic('c');
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
+
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(this);
     }
 
-    private void addCrewMember(MovieCrew crew) {
-        String role = crew.getRole();
-        if (!crewMembers.containsKey(role)) {
-            crewMembers.put(role, new ArrayList<>());
-        }
-        crewMembers.get(role).add(crew);
-        String name = crew.toString();
-        JList<String> roleList = crewLists.get(role);
-        DefaultListModel<String> model = ((DefaultListModel<String>) roleList.getModel());
-        model.addElement(name);
+    @Override
+    public void populateFields(Object data) {
+        Movie movie = (Movie) data;
+        nameField.setText(movie.getName());
+        yearField.setText(Integer.toString(movie.getYear()));
     }
 
-    private void removeCrewMember(MovieCrew crew) {
-        String role = crew.getRole();
-        if (crewMembers.containsKey(role)) {
-            crewMembers.get(role).remove(crew);
-            String name = crew.toString();
-            JList<String> roleList = crewLists.get(role);
-            DefaultListModel<String> model = ((DefaultListModel<String>) roleList.getModel());
-            model.removeElement(name);
-        }
-    }
-
-    private Movie parseFields() {
-        String name = nameField.getText();
-        String yearText = yearField.getText();
-        if (name.isEmpty() || yearText.isEmpty()) {
-            String error = "All mandatory fields (in blue) must be filled in before submitting.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-        } else {
-            for (String role : MovieCrew.ROLES) {
-                if (crewMembers.get(role) == null || crewMembers.get(role).size() == 0) {
-                    String error = "There must be at least one crew member of role " + role + ".";
-                    JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-                    return null;
-                }
+    @Override
+    public Movie parseFields() {
+        if (checkMandatoryFields()) {
+            // combine all crew members
+            ArrayList<MovieCrew> allMembers = new ArrayList<>();
+            for (HashMap<String, MovieCrew> members : crewMap.values()) {
+                allMembers.addAll(members.values());
             }
-            int year = -1;
             try {
-                year = Integer.parseInt(yearText);
+                Movie movie = new Movie.Builder() //
+                        .setName(nameField.getText()) //
+                        .setYear(yearField.getText()) //
+                        .addCrewMembers(allMembers) //
+                        .create();
+                return movie;
             } catch (NumberFormatException e) {
-                String error = "Year of release must be an integer.";
-                JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-                return null;
+                HomeLibrary.showSubmitErrorMessageBox(this, e.getMessage());
             }
-            return new Movie(name, year, crewMembers);
         }
         return null;
     }
 
-    private boolean insertMovie(Movie movie) {
+    @Override
+    public Movie getParsedData() {
+        return movie;
+    }
+
+    @Override
+    public boolean insertToDatabase(Object data) {
+        Movie movie = (Movie) data;
         Connection connection = DatabaseDriver.connectToDatabase();
-        ;
         try {
             DatabaseInserter.insertMovie(connection, movie);
             HomeLibrary.showSubmitMessageBox(this, HomeLibrary.INSERT_DB_SUCCESS_MSG);
@@ -344,6 +437,12 @@ public class MovieDialog extends JDialog {
             HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             e.printStackTrace();
         }
+        return false;
+    }
+
+    @Override
+    public boolean updateToDatabase(Object data) {
+        // TODO Auto-generated method stub
         return false;
     }
 

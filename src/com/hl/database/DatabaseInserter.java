@@ -241,7 +241,7 @@ public class DatabaseInserter {
         if (personId == -1) {
             personId = insertPerson(connection, crew);
         }
-        if (DatabaseSelector.hasMusicCrew(connection, albumName, year, trackName, personId)) {
+        if (DatabaseSelector.isMusicCrew(connection, albumName, year, trackName, personId)) {
             if (isSongwriter) {
                 DatabaseUpdater.updateMusicSongwriter(connection, albumName, year, trackName, personId, isSongwriter);
             }
@@ -276,15 +276,9 @@ public class DatabaseInserter {
 
     public static int insertMovie(Connection connection, Movie movie) throws DatabaseInsertException {
         int recordId = insertMovieDetails(connection, movie);
-        for (String role : MovieCrew.ROLES) {
-            try {
-                for (MovieCrew crew : movie.getCrewMembers().get(role)) {
-                    int personId = insertMovieCrew(connection, movie, crew);
-                    insertMovieAward(connection, personId, movie, crew.getAward());
-                }
-            } catch (NullPointerException e) {
-                System.out.println("Warning! Crew of " + role + " does not exist.");
-            }
+        for (MovieCrew crew : movie.getCrewMembers()) {
+            int personId = insertMovieCrew(connection, movie, crew);
+            insertMovieAward(connection, personId, movie, crew.getAward());
         }
         return recordId;
     }

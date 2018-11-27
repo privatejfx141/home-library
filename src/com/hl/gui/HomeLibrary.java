@@ -264,15 +264,13 @@ public class HomeLibrary extends JFrame {
     }
 
     protected void handleRemoveItem() {
-        RemoveDialog dialog = new RemoveDialog(this);
+        new RemoveDialog(this);
     }
 
     private void handleInsertBook() {
         try {
-            BookDialog dialog = new BookDialog(this, INSERT_RECORD);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            BookDialog dialog = new BookDialog(this);
             dialog.setVisible(true);
-            dialog.setLocationRelativeTo(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -280,7 +278,7 @@ public class HomeLibrary extends JFrame {
 
     private void handleInsertMusic() {
         try {
-            MusicDialog dialog = new MusicDialog(this, INSERT_RECORD);
+            MusicDialog dialog = new MusicDialog(this);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setVisible(true);
             dialog.setLocationRelativeTo(this);
@@ -291,7 +289,7 @@ public class HomeLibrary extends JFrame {
 
     private void handleInsertMovie() {
         try {
-            MovieDialog dialog = new MovieDialog(this, INSERT_RECORD);
+            MovieDialog dialog = new MovieDialog(this);
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setVisible(true);
             dialog.setLocationRelativeTo(this);
@@ -301,7 +299,7 @@ public class HomeLibrary extends JFrame {
     }
 
     private void handleReport(int reportNumber) {
-        ReportDialog dialog = new ReportDialog(this, reportNumber);
+        new ReportDialog(this, reportNumber);
     }
 
 }

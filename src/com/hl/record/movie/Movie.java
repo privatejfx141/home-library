@@ -1,18 +1,26 @@
 package com.hl.record.movie;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.List;
+
+import com.hl.gui.HomeLibrary;
 
 public class Movie {
+
     private String name = "";
     private int year = -1;
-    private HashMap<String, ArrayList<MovieCrew>> crewMembers = new HashMap<>();
+    private ArrayList<MovieCrew> crewMembers;
 
     public static class Builder {
         private Movie movie = new Movie();
 
         public Builder setName(String name) {
-            movie.name = name;
+            try {
+                movie.name = name.trim();
+            } catch (NullPointerException e) {
+                movie.name = "";
+            }
             return this;
         }
 
@@ -21,15 +29,23 @@ public class Movie {
             return this;
         }
 
-        public Builder addCrew(MovieCrew crew) {
-            String role = crew.getRole();
-            if (movie.crewMembers.containsKey(role)) {
-                movie.crewMembers.get(role).add(crew);
-            } else {
-                ArrayList<MovieCrew> members = new ArrayList<>();
-                members.add(crew);
-                movie.crewMembers.put(role, members);
+        public Builder setYear(String year) {
+            try {
+                year = year.trim();
+                return setYear(Integer.parseInt(year));
+            } catch (NullPointerException | NumberFormatException e) {
+                String error = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Year of release");
+                throw new NumberFormatException(error);
             }
+        }
+
+        public Builder addCrewMember(MovieCrew member) {
+            movie.crewMembers.add(member);
+            return this;
+        }
+
+        public Builder addCrewMembers(Collection<MovieCrew> members) {
+            movie.crewMembers.addAll(members);
             return this;
         }
 
@@ -39,13 +55,7 @@ public class Movie {
     }
 
     private Movie() {
-        crewMembers = new HashMap<>();
-    }
-
-    public Movie(String name, int year, HashMap<String, ArrayList<MovieCrew>> crewMembers) {
-        this.name = name;
-        this.year = year;
-        this.crewMembers = crewMembers;
+        crewMembers = new ArrayList<>();
     }
 
     public String getName() {
@@ -56,7 +66,8 @@ public class Movie {
         return year;
     }
 
-    public HashMap<String, ArrayList<MovieCrew>> getCrewMembers() {
+    public List<MovieCrew> getCrewMembers() {
         return crewMembers;
     }
+
 }

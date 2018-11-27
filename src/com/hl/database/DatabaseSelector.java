@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import com.hl.record.Person;
@@ -124,13 +123,13 @@ public class DatabaseSelector {
             statement.setInt(1, personId);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
-                int id = results.getInt("ID");
-                String firstName = results.getString("FirstName");
-                String middleName = results.getString("MiddleName");
-                String lastName = results.getString("FamilyName");
-                boolean gender = results.getBoolean("Gender");
-                String genderName = gender ? "Male" : "Female";
-                person = new Person(id, firstName, middleName, lastName, genderName);
+                person = new Person.Builder() //
+                        .setId(results.getInt("ID")) //
+                        .setFirstName(results.getString("FirstName")) //
+                        .setMiddleName(results.getString("MiddleName")) //
+                        .setLastName(results.getString("FamilyName")) //
+                        .setGender(results.getBoolean("Gender")) //
+                        .create();
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -146,21 +145,20 @@ public class DatabaseSelector {
             statement.setString(1, isbn);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
-                String title = results.getString("Title");
-                String publisher = results.getString("Publisher");
-                int pages = results.getInt("NumberOfPages");
-                int year = results.getInt("YearOfPublication");
-                int edition = results.getInt("EditionNumber");
-                edition = edition == 0 ? -1 : edition;
-                String description = results.getString("Abstract");
-                List<Person> authors = getBookAuthors(connection, isbn);
-                List<String> keywords = getBookKeywords(connection, isbn);
-                book = new Book(isbn, title, publisher, pages, year, edition, description, authors, keywords);
+                book = new Book.Builder() //
+                        .setTitle(results.getString("Title")) //
+                        .setPublisher(results.getString("Publisher")) //
+                        .setNumberOfPages(results.getInt("NumberOfPages")) //
+                        .setYearOfPublication(results.getInt("YearOfPublication")) //
+                        .setEditionNumber(results.getInt("EditionNumber")) //
+                        .setDescription(results.getString("Abstract")) //
+                        .addAuthors(getBookAuthors(connection, isbn)) //
+                        .addKeywords(getBookKeywords(connection, isbn)) //
+                        .create();
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return book;
     }
 
@@ -236,10 +234,10 @@ public class DatabaseSelector {
         MusicAlbum album = null;
         Person producer = null;
         ArrayList<MusicTrack> tracks = new ArrayList<>();
-        String sql = "SELECT MusicName, Language, DiskType, Producer_ID FROM Music WHERE AlbumName = ? AND Year = ?";
+        String sql = "SELECT MusicName, Language, DiskType, Producer_ID FROM Music WHERE LOWER(AlbumName) = ? AND Year = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, albumName);
+            statement.setString(1, albumName.toLowerCase());
             statement.setInt(2, year);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
@@ -253,21 +251,51 @@ public class DatabaseSelector {
                 MusicTrack track = getMusicTrack(connection, albumName, year, trackName, language, diskType);
                 tracks.add(track);
             }
-            album = new MusicAlbum(albumName, year, producer, tracks);
+            album = new MusicAlbum.Builder() //
+                    .setName(albumName) //
+                    .setYear(year) //
+                    .addTracks(tracks) //
+                    .create();
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return album;
     }
 
-    public static MusicTrack getMusicTrack(Connection connection, String albumName, int year, String name,
+    public static MusicTrack getMusicTrack(Connection connection, String albumName, int year, String trackName,
             String language, boolean diskType) {
         MusicTrack track = null;
-        String diskTypeName = diskType ? "Vinyl" : "CD";
-        Person songwriter = getMusicCrew(connection, albumName, year, name, "Songwriter");
-        Person composer = getMusicCrew(connection, albumName, year, name, "Composer");
-        Person arranger = getMusicCrew(connection, albumName, year, name, "Arranger");
-        track = new MusicTrack(name, language, songwriter, composer, arranger, diskTypeName);
+        // get music crew
+        Person songwriter = getMusicCrew(connection, albumName, year, trackName, "Songwriter");
+        Person composer = getMusicCrew(connection, albumName, year, trackName, "Composer");
+        Person arranger = getMusicCrew(connection, albumName, year, trackName, "Arranger");
+        // get music singers
+        ArrayList<Person> singers = new ArrayList<>();
+        String sql = "SELECT PeopleInvolved_ID FROM MusicSinger WHERE LOWER(AlbumName) = ? AND Year = ? "
+                + "AND LOWER(MusicName) = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, albumName.toLowerCase());
+            statement.setInt(2, year);
+            statement.setString(3, trackName.toLowerCase());
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                int singerId = results.getInt("PeopleInvolved_ID");
+                Person singer = getPerson(connection, singerId);
+                singers.add(singer);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // create and return music track
+        track = new MusicTrack.Builder() //
+                .setName(trackName) //
+                .setSongwriter(songwriter) //
+                .setComposer(composer) //
+                .setArranger(arranger) //
+                .addSingers(singers) //
+                .setDiskType(diskType) //
+                .create();
         return track;
     }
 
@@ -350,7 +378,8 @@ public class DatabaseSelector {
         return crew;
     }
 
-    public static boolean hasMusicCrew(Connection connection, String albumName, int year, String trackName, int personId) {
+    public static boolean isMusicCrew(Connection connection, String albumName, int year, String trackName,
+            int personId) {
         String sql = "SELECT * FROM PeopleInvolvedMusic WHERE LOWER(AlbumName) = ? "
                 + "AND Year = ? AND LOWER(MusicName) = ? And PeopleInvolved_ID = ?";
         try {
@@ -392,10 +421,7 @@ public class DatabaseSelector {
     public static Movie getMovie(Connection connection, String movieName, int year) {
         Movie movie = null;
         // get all crew members
-        HashMap<String, ArrayList<MovieCrew>> crewMembers = new HashMap<>();
-        for (String role : MovieCrew.ROLES) {
-            crewMembers.put(role, new ArrayList<>());
-        }
+        ArrayList<MovieCrew> crewMembers = new ArrayList<>();
         String sql = "SELECT * FROM CrewMember WHERE MovieName = ? AND ReleaseYear = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
@@ -406,12 +432,12 @@ public class DatabaseSelector {
                 int personId = results.getInt("PeopleInvolved_ID");
                 int roleId = results.getInt("Role_ID");
                 MovieCrew crew = getMovieCrew(connection, personId, movieName, year, roleId);
-                crewMembers.get(crew.getRole()).add(crew);
+                crewMembers.add(crew);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        movie = new Movie(movieName, year, crewMembers);
+        movie = new Movie.Builder().setName(movieName).setYear(year).addCrewMembers(crewMembers).create();
         return movie;
     }
 
@@ -436,15 +462,11 @@ public class DatabaseSelector {
     public static MovieCrew getMovieCrew(Connection connection, int personId, String movieName, int year, int roleId) {
         MovieCrew crew = null;
         try {
-            Person person = getPerson(connection, personId);
-            int id = person.getId();
-            String firstName = person.getFirstName();
-            String middleName = person.getMiddleName();
-            String lastName = person.getLastName();
-            String gender = person.getGender();
-            String role = getMovieRole(connection, roleId);
-            boolean award = getMovieAward(connection, personId, movieName, year);
-            crew = new MovieCrew(id, firstName, middleName, lastName, gender, role, award);
+            crew = new MovieCrew.Builder() //
+                    .setPerson(getPerson(connection, personId)) //
+                    .setRole(getMovieRole(connection, roleId)) //
+                    .hasAward(getMovieAward(connection, personId, movieName, year)) //
+                    .create();
         } catch (NullPointerException e) {
             e.printStackTrace();
         }

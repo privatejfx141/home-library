@@ -1,6 +1,7 @@
 package com.hl.record.music;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.hl.exceptions.NameFormatException;
@@ -20,22 +21,46 @@ public class MusicTrack {
         private MusicTrack track = new MusicTrack();
 
         public Builder setName(String name) {
-            track.name = name;
+            try {
+                track.name = name.trim();
+            } catch (NullPointerException e) {
+                track.name = "";
+            }
             return this;
         }
 
         public Builder setLanguage(String language) {
-            track.language = language;
+            try {
+                track.language = language.trim();
+            } catch (NullPointerException e) {
+                track.language = "";
+            }
             return this;
         }
 
         public Builder addSinger(Person singer) {
-            track.singers.add(singer);
+            if (singer != null) {
+                track.singers.add(singer);
+            }
             return this;
         }
-        
+
         public Builder addSinger(String singer) throws NameFormatException {
-            return addSinger(Person.parseName(singer));
+            singer = singer.trim();
+            if (!singer.isEmpty()) {
+                try {
+                    return addSinger(Person.parseName(singer));
+                } catch (NameFormatException e) {
+                    String error = "Singer name is not a proper name.";
+                    throw new NameFormatException(error);
+                }
+            }
+            return this;
+        }
+
+        public Builder addSingers(Collection<Person> singers) {
+            track.singers.addAll(singers);
+            return this;
         }
 
         public Builder setSongwriter(Person songwriter) {
@@ -44,7 +69,12 @@ public class MusicTrack {
         }
 
         public Builder setSongwriter(String songwriter) throws NameFormatException {
-            track.songwriter = Person.parseName(songwriter);
+            try {
+                track.songwriter = Person.parseName(songwriter.trim());
+            } catch (NameFormatException e) {
+                String error = "Songwriter name is not a proper name.";
+                throw new NameFormatException(error);
+            }
             return this;
         }
 
@@ -54,7 +84,12 @@ public class MusicTrack {
         }
 
         public Builder setComposer(String composer) throws NameFormatException {
-            track.composer = Person.parseName(composer);
+            try {
+                track.composer = Person.parseName(composer.trim());
+            } catch (NameFormatException e) {
+                String error = "Composer name is not a proper name.";
+                throw new NameFormatException(error);
+            }
             return this;
         }
 
@@ -64,13 +99,26 @@ public class MusicTrack {
         }
 
         public Builder setArranger(String arrangement) throws NameFormatException {
-            track.arrangement = Person.parseName(arrangement);
+            try {
+                track.arrangement = Person.parseName(arrangement);
+            } catch (NameFormatException e) {
+                String error = "Arranger name is not a proper name.";
+                throw new NameFormatException(error);
+            }
             return this;
         }
 
         public Builder setDiskType(String diskType) {
-            track.diskType = diskType;
+            try {
+                track.diskType = diskType.trim();
+            } catch (NullPointerException e) {
+                track.diskType = "";
+            }
             return this;
+        }
+
+        public Builder setDiskType(boolean diskType) {
+            return setDiskType(diskType ? "Vinyl" : "CD");
         }
 
         public MusicTrack create() {
@@ -81,17 +129,6 @@ public class MusicTrack {
 
     private MusicTrack() {
         this.singers = new ArrayList<>();
-    }
-
-    public MusicTrack(String name, String language, Person songwriter, Person composer, Person arrangement,
-            String diskType) {
-        this.name = name;
-        this.language = language;
-        this.singers = new ArrayList<>();
-        this.songwriter = songwriter;
-        this.composer = composer;
-        this.arrangement = arrangement;
-        this.diskType = diskType;
     }
 
     public String getName() {

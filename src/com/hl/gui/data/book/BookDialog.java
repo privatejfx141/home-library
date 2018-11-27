@@ -2,10 +2,11 @@ package com.hl.gui.data.book;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
@@ -13,119 +14,124 @@ import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
 import com.hl.exceptions.DatabaseInsertException;
 import com.hl.gui.HomeLibrary;
+import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.Person;
 import com.hl.record.book.Book;
 
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.awt.event.ActionEvent;
-import java.awt.GridLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
 import java.awt.Color;
+import javax.swing.JList;
 
-public class BookDialog extends JDialog {
+public class BookDialog extends HomeLibraryProductDialog {
     /**
      * Generated serial version UID.
      */
     private static final long serialVersionUID = -8642016230269365480L;
 
     private final JPanel contentPanel = new JPanel();
-    private JTextField nameField;
+
     private JTextField isbnField;
+    private JTextField nameField;
     private JTextField publisherField;
     private JTextField editionField;
     private JTextField pagesField;
     private JTextField yearField;
 
-    private JTextField author1FirstNameField;
-    private JTextField author1MiddleNameField;
-    private JTextField author1SurnameField;
-    private JTextField author2FirstNameField;
-    private JTextField author2MiddleNameField;
-    private JTextField author2SurnameField;
-    private JTextField author3FirstNameField;
-    private JTextField author3MiddleNameField;
-    private JTextField author3SurnameField;
-    private JTextField author4FirstNameField;
-    private JTextField author4MiddleNameField;
-    private JTextField author4SurnameField;
-    private JTextField author5FirstNameField;
-    private JTextField author5MiddleNameField;
-    private JTextField author5SurnameField;
-
-    private JLabel keywordLabel;
-    private JScrollPane descriptionPane;
-    private JScrollPane keywordPane;
     private JTextArea descriptionField;
     private JTextArea keywordField;
+    private JScrollPane authorPane;
+
+    private JList<String> authorList;
+    private JButton addAuthorButton;
+
+    private HashMap<String, Person> authorMap = new HashMap<>();
+    private Book book;
+
+    private MouseAdapter listMouseListener = new MouseAdapter() {
+        @Override
+        public void mouseClicked(MouseEvent evt) {
+            String authorKey = authorList.getSelectedValue();
+            if (SwingUtilities.isLeftMouseButton(evt) && evt.getClickCount() == 2) {
+                // double click to update track
+                Person author = authorMap.get(authorKey);
+                handleOpenDialog(author);
+            }
+            if (SwingUtilities.isRightMouseButton(evt)) {
+                // right click to delete track
+                if (authorKey != null) {
+                    Person author = authorMap.get(authorKey);
+                    removeAuthor(author);
+                }
+            }
+        }
+    };
 
     /**
      * Launch the application.
      */
     public static void main(String[] args) {
-        try {
-            BookDialog dialog = new BookDialog(null, 0);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-            dialog.setVisible(true);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        new BookDialog(null);
     }
 
     /**
      * Create the dialog.
+     * 
+     * @wbp.parser.constructor
      */
-    public BookDialog(JFrame parentFrame, int mode) {
-        super(parentFrame, "Insert Book", true);
-        if (mode == HomeLibrary.UPDATE_RECORD) {
-            setTitle("Update Book");
+    public BookDialog(Frame parent) {
+        this(parent, null);
+    }
+
+    public BookDialog(Frame parent, Book data) {
+        super(parent, data);
+        initialize();
+        if (data != null) {
+            populateFields(data);
         }
+        setVisible(true);
+    }
+
+    private void initialize() {
+        createGUI();
+        addMandatoryField(isbnField);
+        addMandatoryField(nameField);
+        addMandatoryField(publisherField);
+        addMandatoryField(pagesField);
+        addMandatoryField(yearField);
+    }
+
+    @Override
+    public void createGUI() {
         setResizable(false);
-        setBounds(100, 100, 480, 720);
+        setBounds(100, 100, 480, 700);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(contentPanel, BorderLayout.NORTH);
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
 
-        createGUI();
-    }
-
-    private void createGUI() {
         GridBagLayout gbl_contentPanel = new GridBagLayout();
-        gbl_contentPanel.columnWidths = new int[] { 220, 260 };
-        gbl_contentPanel.rowHeights = new int[] { 26, 26, 26, 26, 26, 26, 26, 26, 26, 152, 26, 72 };
+        gbl_contentPanel.columnWidths = new int[] { 170, 260 };
+        gbl_contentPanel.rowHeights = new int[] { 26, 26, 26, 26, 26, 26, 32, 100, 32, 120, 32, 100 };
         gbl_contentPanel.columnWeights = new double[] { 1.0, 1.0 };
-        gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0 };
+        gbl_contentPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0 };
         contentPanel.setLayout(gbl_contentPanel);
-
-        JLabel nameLabel = new JLabel("Name");
-        nameLabel.setForeground(Color.BLUE);
-        GridBagConstraints gbc_nameLabel = new GridBagConstraints();
-        gbc_nameLabel.fill = GridBagConstraints.BOTH;
-        gbc_nameLabel.insets = new Insets(0, 0, 5, 5);
-        gbc_nameLabel.gridx = 0;
-        gbc_nameLabel.gridy = 0;
-        contentPanel.add(nameLabel, gbc_nameLabel);
-
-        nameField = new JTextField(45);
-        GridBagConstraints gbc_nameField = new GridBagConstraints();
-        gbc_nameField.fill = GridBagConstraints.BOTH;
-        gbc_nameField.insets = new Insets(0, 0, 5, 0);
-        gbc_nameField.gridx = 1;
-        gbc_nameField.gridy = 0;
-        contentPanel.add(nameField, gbc_nameField);
-        nameField.setColumns(10);
 
         JLabel isbnLabel = new JLabel("ISBN");
         isbnLabel.setForeground(Color.BLUE);
@@ -133,7 +139,7 @@ public class BookDialog extends JDialog {
         gbc_isbnLabel.fill = GridBagConstraints.BOTH;
         gbc_isbnLabel.insets = new Insets(0, 0, 5, 5);
         gbc_isbnLabel.gridx = 0;
-        gbc_isbnLabel.gridy = 1;
+        gbc_isbnLabel.gridy = 0;
         contentPanel.add(isbnLabel, gbc_isbnLabel);
 
         isbnField = new JTextField(13);
@@ -141,8 +147,26 @@ public class BookDialog extends JDialog {
         gbc_isbnField.fill = GridBagConstraints.BOTH;
         gbc_isbnField.insets = new Insets(0, 0, 5, 0);
         gbc_isbnField.gridx = 1;
-        gbc_isbnField.gridy = 1;
+        gbc_isbnField.gridy = 0;
         contentPanel.add(isbnField, gbc_isbnField);
+
+        JLabel nameLabel = new JLabel("Name");
+        nameLabel.setForeground(Color.BLUE);
+        GridBagConstraints gbc_nameLabel = new GridBagConstraints();
+        gbc_nameLabel.fill = GridBagConstraints.BOTH;
+        gbc_nameLabel.insets = new Insets(0, 0, 5, 5);
+        gbc_nameLabel.gridx = 0;
+        gbc_nameLabel.gridy = 1;
+        contentPanel.add(nameLabel, gbc_nameLabel);
+
+        nameField = new JTextField(45);
+        GridBagConstraints gbc_nameField = new GridBagConstraints();
+        gbc_nameField.fill = GridBagConstraints.BOTH;
+        gbc_nameField.insets = new Insets(0, 0, 5, 0);
+        gbc_nameField.gridx = 1;
+        gbc_nameField.gridy = 1;
+        contentPanel.add(nameField, gbc_nameField);
+        nameField.setColumns(10);
 
         JLabel publisherLabel = new JLabel("Publisher");
         publisherLabel.setForeground(Color.BLUE);
@@ -216,86 +240,33 @@ public class BookDialog extends JDialog {
         contentPanel.add(yearField, gbc_yearField);
         yearField.setColumns(10);
 
-        JLabel authorLabel = new JLabel("Author(s) (First Name, Middle Name, Surname)");
-        authorLabel.setForeground(Color.BLUE);
-        authorLabel.setHorizontalAlignment(SwingConstants.LEFT);
-        GridBagConstraints gbc_authorLabel = new GridBagConstraints();
-        gbc_authorLabel.insets = new Insets(0, 0, 5, 0);
-        gbc_authorLabel.anchor = GridBagConstraints.WEST;
-        gbc_authorLabel.gridwidth = 2;
-        gbc_authorLabel.gridx = 0;
-        gbc_authorLabel.gridy = 6;
-        contentPanel.add(authorLabel, gbc_authorLabel);
+        addAuthorButton = new JButton("Add Author");
+        addAuthorButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                handleOpenDialog(null);
+            }
+        });
+        addAuthorButton.setMnemonic('a');
+        GridBagConstraints gbc_addAuthorButton = new GridBagConstraints();
+        gbc_addAuthorButton.gridwidth = 2;
+        gbc_addAuthorButton.insets = new Insets(0, 0, 5, 5);
+        gbc_addAuthorButton.gridx = 0;
+        gbc_addAuthorButton.gridy = 6;
+        contentPanel.add(addAuthorButton, gbc_addAuthorButton);
 
-        JPanel authorPanel = new JPanel();
-        GridBagConstraints gbc_authorPanel = new GridBagConstraints();
-        gbc_authorPanel.insets = new Insets(0, 0, 5, 0);
-        gbc_authorPanel.gridwidth = 2;
-        gbc_authorPanel.fill = GridBagConstraints.BOTH;
-        gbc_authorPanel.gridx = 0;
-        gbc_authorPanel.gridy = 7;
-        contentPanel.add(authorPanel, gbc_authorPanel);
-        authorPanel.setLayout(new GridLayout(5, 3, 3, 3));
+        authorPane = new JScrollPane();
+        GridBagConstraints gbc_authorPane = new GridBagConstraints();
+        gbc_authorPane.gridwidth = 2;
+        gbc_authorPane.insets = new Insets(0, 0, 5, 0);
+        gbc_authorPane.fill = GridBagConstraints.BOTH;
+        gbc_authorPane.gridx = 0;
+        gbc_authorPane.gridy = 7;
+        contentPanel.add(authorPane, gbc_authorPane);
 
-        author1FirstNameField = new JTextField();
-        authorPanel.add(author1FirstNameField);
-        author1FirstNameField.setColumns(10);
-
-        author1MiddleNameField = new JTextField();
-        authorPanel.add(author1MiddleNameField);
-        author1MiddleNameField.setColumns(10);
-
-        author1SurnameField = new JTextField();
-        authorPanel.add(author1SurnameField);
-        author1SurnameField.setColumns(10);
-
-        author2FirstNameField = new JTextField();
-        authorPanel.add(author2FirstNameField);
-        author2FirstNameField.setColumns(10);
-
-        author2MiddleNameField = new JTextField();
-        authorPanel.add(author2MiddleNameField);
-        author2MiddleNameField.setColumns(10);
-
-        author2SurnameField = new JTextField();
-        authorPanel.add(author2SurnameField);
-        author2SurnameField.setColumns(10);
-
-        author3FirstNameField = new JTextField();
-        authorPanel.add(author3FirstNameField);
-        author3FirstNameField.setColumns(10);
-
-        author3MiddleNameField = new JTextField();
-        authorPanel.add(author3MiddleNameField);
-        author3MiddleNameField.setColumns(10);
-
-        author3SurnameField = new JTextField();
-        authorPanel.add(author3SurnameField);
-        author3SurnameField.setColumns(10);
-
-        author4FirstNameField = new JTextField();
-        authorPanel.add(author4FirstNameField);
-        author4FirstNameField.setColumns(10);
-
-        author4MiddleNameField = new JTextField();
-        authorPanel.add(author4MiddleNameField);
-        author4MiddleNameField.setColumns(10);
-
-        author4SurnameField = new JTextField();
-        authorPanel.add(author4SurnameField);
-        author4SurnameField.setColumns(10);
-
-        author5FirstNameField = new JTextField();
-        authorPanel.add(author5FirstNameField);
-        author5FirstNameField.setColumns(10);
-
-        author5MiddleNameField = new JTextField();
-        authorPanel.add(author5MiddleNameField);
-        author5MiddleNameField.setColumns(10);
-
-        author5SurnameField = new JTextField();
-        authorPanel.add(author5SurnameField);
-        author5SurnameField.setColumns(10);
+        authorList = new JList<String>(new DefaultListModel<String>());
+        authorList.addMouseListener(listMouseListener);
+        authorPane.setViewportView(authorList);
 
         JLabel descriptionLabel = new JLabel("Description (5000 characters max)");
         GridBagConstraints gbc_descriptionLabel = new GridBagConstraints();
@@ -306,7 +277,7 @@ public class BookDialog extends JDialog {
         gbc_descriptionLabel.gridy = 8;
         contentPanel.add(descriptionLabel, gbc_descriptionLabel);
 
-        descriptionPane = new JScrollPane();
+        JScrollPane descriptionPane = new JScrollPane();
         GridBagConstraints gbc_descriptionPane = new GridBagConstraints();
         gbc_descriptionPane.fill = GridBagConstraints.BOTH;
         gbc_descriptionPane.gridwidth = 2;
@@ -319,7 +290,7 @@ public class BookDialog extends JDialog {
         descriptionField.setLineWrap(true);
         descriptionPane.setViewportView(descriptionField);
 
-        keywordLabel = new JLabel("Keywords (semicolon-separated)");
+        JLabel keywordLabel = new JLabel("Keywords (semicolon-separated)");
         GridBagConstraints gbc_keywordLabel = new GridBagConstraints();
         gbc_keywordLabel.anchor = GridBagConstraints.WEST;
         gbc_keywordLabel.gridwidth = 2;
@@ -328,11 +299,10 @@ public class BookDialog extends JDialog {
         gbc_keywordLabel.gridy = 10;
         contentPanel.add(keywordLabel, gbc_keywordLabel);
 
-        keywordPane = new JScrollPane();
+        JScrollPane keywordPane = new JScrollPane();
         GridBagConstraints gbc_keywordPane = new GridBagConstraints();
         gbc_keywordPane.fill = GridBagConstraints.BOTH;
         gbc_keywordPane.gridwidth = 2;
-        gbc_keywordPane.insets = new Insets(0, 0, 0, 5);
         gbc_keywordPane.gridx = 0;
         gbc_keywordPane.gridy = 11;
         contentPanel.add(keywordPane, gbc_keywordPane);
@@ -347,6 +317,7 @@ public class BookDialog extends JDialog {
         getContentPane().add(buttonPane, BorderLayout.SOUTH);
 
         JButton submitButton = new JButton("Submit");
+        submitButton.setMnemonic('s');
         submitButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -358,145 +329,126 @@ public class BookDialog extends JDialog {
         getRootPane().setDefaultButton(submitButton);
 
         JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent arg0) {
-                dispose();
-            }
-        });
+        cancelButton.setMnemonic('c');
+        cancelButton.addActionListener(cancelListener);
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
+
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(this);
     }
 
-    private Person parseAuthor(String firstName, String middleName, String lastName) {
-        if (firstName.isEmpty()) {
-            String error = "Author must have a First Name.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
+    private void handleOpenDialog(Person oldAuthor) {
+        ArrayList<Person> addedAuthors = new ArrayList<>(authorMap.values());
+        // if updating, remove old author from check
+        if (oldAuthor != null) {
+            addedAuthors.remove(oldAuthor);
         }
-        if (lastName.isEmpty()) {
-            String error = "Author must have a Surname.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            return null;
+        BookAuthorDialog dialog = new BookAuthorDialog(this, addedAuthors, oldAuthor);
+        Person newAuthor = dialog.getParsedData();
+        // if new author was submitted
+        if (newAuthor != null) {
+            // if updating, remove old author to be replaced
+            if (oldAuthor != null) {
+                removeAuthor(oldAuthor);
+            }
+            addAuthor(newAuthor);
         }
-        return new Person(firstName, middleName, lastName);
     }
 
-    private List<Person> parseAuthors() {
-        List<Person> authors = new ArrayList<>();
-        // parse author 1
-        String firstName = author1FirstNameField.getText().trim();
-        String middleName = author1MiddleNameField.getText().trim();
-        String lastName = author1SurnameField.getText().trim();
-        Person author = parseAuthor(firstName, middleName, lastName);
-        authors.add(author);
-        // parse author 2
-        firstName = author2FirstNameField.getText().trim();
-        middleName = author2MiddleNameField.getText().trim();
-        lastName = author2SurnameField.getText().trim();
-        if (!(firstName + middleName + lastName).isEmpty()) {
-            author = parseAuthor(firstName, middleName, lastName);
-            if ((author = parseAuthor(firstName, middleName, lastName)) == null)
-                return null;
-            authors.add(author);
+    private void addAuthor(Person author) {
+        String authorKey = author.toString();
+        authorMap.put(authorKey, author);
+        DefaultListModel<String> model = (DefaultListModel<String>) authorList.getModel();
+        model.addElement(authorKey);
+        if (authorMap.size() >= 5) {
+            addAuthorButton.setEnabled(false);
         }
-        // parse author 3
-        firstName = author3FirstNameField.getText().trim();
-        middleName = author3MiddleNameField.getText().trim();
-        lastName = author3SurnameField.getText().trim();
-        if (!(firstName + middleName + lastName).isEmpty()) {
-            if ((author = parseAuthor(firstName, middleName, lastName)) == null)
-                return null;
-            authors.add(author);
+        System.out.println("Book dialog: " + authorKey + " added.");
+    }
+
+    private void removeAuthor(Person author) {
+        String authorKey = author.toString();
+        authorMap.remove(authorKey);
+        DefaultListModel<String> model = (DefaultListModel<String>) authorList.getModel();
+        model.removeElement(authorKey);
+        if (authorMap.size() < 5) {
+            addAuthorButton.setEnabled(true);
         }
-        // parse author 4
-        firstName = author4FirstNameField.getText().trim();
-        middleName = author4MiddleNameField.getText().trim();
-        lastName = author4SurnameField.getText().trim();
-        if (!(firstName + middleName + lastName).isEmpty()) {
-            if ((author = parseAuthor(firstName, middleName, lastName)) == null)
-                return null;
-            authors.add(author);
-        }
-        // parse author 5
-        firstName = author5FirstNameField.getText().trim();
-        middleName = author5MiddleNameField.getText().trim();
-        lastName = author5SurnameField.getText().trim();
-        if (!(firstName + middleName + lastName).isEmpty()) {
-            if ((author = parseAuthor(firstName, middleName, lastName)) == null)
-                return null;
-            authors.add(author);
-        }
-        return authors;
+        System.out.println("Book dialog: " + authorKey + " removed.");
     }
 
     private void handleSubmit() {
         // parse field to get book data
-        Book book = parseFields();
+        Book book = (Book) parseFields();
         if (book == null) {
             return;
         }
         // insert into database
-        if (insertBook(book)) {
+        if (insertToDatabase(book)) {
             dispose();
         }
     }
 
-    private Book parseFields() {
-        String isbn = isbnField.getText().trim();
-        String name = nameField.getText().trim();
-        String publisher = publisherField.getText().trim();
-        String pagesText = pagesField.getText().trim();
-        String yearText = yearField.getText().trim();
-        String editionText = editionField.getText().trim();
+    @Override
+    public void populateFields(Object data) {
+        book = (Book) data;
+        String isbn = book.getIsbn();
+        setTitle(getTitle() + " (ISBN: " + isbn + ")");
+        isbnField.setText(isbn);
+        isbnField.setEnabled(false);
+        nameField.setText(book.getTitle());
+        publisherField.setText(book.getPublisher());
+        editionField.setText(Integer.toString(book.getEditionNumber()));
+        pagesField.setText(Integer.toString(book.getNumberOfPages()));
+        yearField.setText(Integer.toString(book.getYearOfPublication()));
+        descriptionField.setText(book.getDescription());
+    }
+
+    @Override
+    public Object parseFields() {
         // check mandatory fields
-        if (isbn.isEmpty() || name.isEmpty() || publisher.isEmpty() || pagesText.isEmpty() || yearText.isEmpty()) {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.MANDATORY_FIELD_MSG);
-            return null;
-        }
-        // check fields for author
-        List<Person> authors = parseAuthors();
-        if (authors == null) {
-            return null;
-        }
-        // parse number values
-        int pages = -1;
-        try {
-            pages = Integer.parseInt(pagesText);
-        } catch (NumberFormatException e) {
-            String error = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Number of Pages");
-            HomeLibrary.showSubmitErrorMessageBox(this, error);
-            return null;
-        }
-        int year = -1;
-        try {
-            year = Integer.parseInt(yearText);
-        } catch (NumberFormatException e) {
-            String error = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Year of Publication");
-            HomeLibrary.showSubmitErrorMessageBox(this, error);
-            return null;
-        }
-        int edition = -1;
-        if (!editionText.isEmpty()) {
-            try {
-                edition = Integer.parseInt(editionText);
-            } catch (NumberFormatException e) {
-                String error = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Edition Number");
+        if (checkMandatoryFields()) {
+            // check if author was added
+            if (authorMap.isEmpty()) {
+                String error = "At least one author must be added.";
                 HomeLibrary.showSubmitErrorMessageBox(this, error);
                 return null;
             }
+            // parse keywords
+            String keywordText = keywordField.getText().trim();
+            List<String> keywords = new ArrayList<String>(Arrays.asList(keywordText.split("\\s*;\\s*")));
+            if (keywordText.isEmpty()) {
+                keywords.clear();
+            }
+            try {
+                // create book
+                Book book = new Book.Builder() //
+                        .setIsbn(isbnField.getText()) //
+                        .setTitle(nameField.getText()) //
+                        .setPublisher(publisherField.getText()) //
+                        .setEditionNumber(editionField.getText()) //
+                        .setNumberOfPages(pagesField.getText()) //
+                        .setYearOfPublication(yearField.getText()) //
+                        .setDescription(descriptionField.getText()) //
+                        .addAuthors(authorMap.values()) //
+                        .addKeywords(keywords) //
+                        .create();
+                return book;
+            } catch (NumberFormatException e) {
+                HomeLibrary.showSubmitErrorMessageBox(this, e.getMessage());
+            }
         }
-        // parse description and keywords
-        String description = descriptionField.getText().trim();
-        String keywordText = keywordField.getText().trim();
-        List<String> keywords = new ArrayList<String>(Arrays.asList(keywordText.split("\\s*;\\s*")));
-        if (keywordText.isEmpty()) {
-            keywords.clear();
-        }
-        // build book
-        return new Book(isbn, name, publisher, pages, year, edition, description, authors, keywords);
+        return null;
     }
 
-    private boolean insertBook(Book book) {
+    @Override
+    public Object getParsedData() {
+        return book;
+    }
+
+    @Override
+    public boolean insertToDatabase(Object data) {
         Connection connection = DatabaseDriver.connectToDatabase();
         try {
             DatabaseInserter.insertBook(connection, book);
@@ -512,6 +464,12 @@ public class BookDialog extends JDialog {
                 e.printStackTrace();
             }
         }
+        return false;
+    }
+
+    @Override
+    public boolean updateToDatabase(Object data) {
+        // TODO Auto-generated method stub
         return false;
     }
 

@@ -1,64 +1,13 @@
 package com.hl.record.book;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
+import com.hl.gui.HomeLibrary;
 import com.hl.record.Person;
 
 public class Book {
-
-    public static class Builder {
-        private Book book = new Book();
-
-        public Builder setIsbn(String isbn) {
-            book.isbn = isbn;
-            return this;
-        }
-
-        public Builder setTitle(String title) {
-            book.title = title;
-            return this;
-        }
-
-        public Builder setPublisher(String publisher) {
-            book.publisher = publisher;
-            return this;
-        }
-
-        public Builder setNumberOfPages(int pages) {
-            book.pages = pages;
-            return this;
-        }
-
-        public Builder setYearOfPublication(int year) {
-            book.year = year;
-            return this;
-        }
-
-        public Builder setEditionNumber(int edition) {
-            book.edition = edition;
-            return this;
-        }
-
-        public Builder setDescription(String description) {
-            book.description = description;
-            return this;
-        }
-
-        public Builder addAuthor(Person author) {
-            book.authors.add(author);
-            return this;
-        }
-
-        public Builder addKeyword(String keyword) {
-            book.keywords.add(keyword);
-            return this;
-        }
-
-        public Book create() {
-            return book;
-        }
-    }
 
     private String isbn = "";
     private String title = "";
@@ -70,22 +19,120 @@ public class Book {
     private List<Person> authors;
     private List<String> keywords;
 
+    public static class Builder {
+        private Book book = new Book();
+
+        public Builder setIsbn(String isbn) {
+            try {
+                book.isbn = isbn.trim();
+            } catch (NullPointerException e) {
+                book.isbn = "";
+            }
+            return this;
+        }
+
+        public Builder setTitle(String title) {
+            try {
+                book.title = title.trim();
+            } catch (NullPointerException e) {
+                book.title = "";
+            }
+            return this;
+        }
+
+        public Builder setPublisher(String publisher) {
+            try {
+                book.publisher = publisher.trim();
+            } catch (NullPointerException e) {
+                book.publisher = "";
+            }
+            return this;
+        }
+
+        public Builder setNumberOfPages(int pages) {
+            book.pages = pages;
+            return this;
+        }
+
+        public Builder setNumberOfPages(String pages) throws NumberFormatException {
+            try {
+                pages = pages.trim();
+                return setNumberOfPages(Integer.parseInt(pages));
+            } catch (NullPointerException | NumberFormatException e) {
+                String msg = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Number of pages");
+                throw new NumberFormatException(msg);
+            }
+        }
+
+        public Builder setYearOfPublication(int year) {
+            book.year = year;
+            return this;
+        }
+
+        public Builder setYearOfPublication(String year) throws NumberFormatException {
+            try {
+                year = year.trim();
+                return setYearOfPublication(Integer.parseInt(year));
+            } catch (NullPointerException | NumberFormatException e) {
+                String msg = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Year of publication");
+                throw new NumberFormatException(msg);
+            }
+        }
+
+        public Builder setEditionNumber(int edition) {
+            book.edition = edition;
+            return this;
+        }
+
+        public Builder setEditionNumber(String edition) {
+            if (edition != null && !(edition = edition.trim()).isEmpty()) {
+                try {
+                    return setYearOfPublication(Integer.parseInt(edition));
+                } catch (NumberFormatException e) {
+                    String msg = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Edition number");
+                    throw new NumberFormatException(msg);
+                }
+            }
+            return this;
+        }
+
+        public Builder setDescription(String description) {
+            try {
+                book.description = description.trim();
+            } catch (NullPointerException e) {
+                book.description = "";
+            }
+            return this;
+        }
+
+        public Builder addAuthor(Person author) {
+            book.authors.add(author);
+            return this;
+        }
+
+        public Builder addAuthors(Collection<Person> authors) {
+            book.authors.addAll(authors);
+            return this;
+        }
+
+        public Builder addKeyword(String keyword) {
+            book.keywords.add(keyword.trim());
+            return this;
+        }
+
+        public Builder addKeywords(Collection<String> keywords) {
+            book.keywords.addAll(keywords);
+            return this;
+        }
+
+        public Book create() {
+            return book;
+        }
+    }
+
     private Book() {
         authors = new ArrayList<>();
         keywords = new ArrayList<>();
-    }
-
-    public Book(String isbn, String title, String publisher, int pages, int year, int edition, String description,
-            List<Person> authors, List<String> keywords) {
-        this.isbn = isbn;
-        this.title = title;
-        this.publisher = publisher;
-        this.pages = pages;
-        this.year = year;
-        this.edition = edition;
-        this.description = description;
-        this.authors = authors;
-        this.keywords = keywords;
     }
 
     public String getIsbn() {
@@ -135,4 +182,5 @@ public class Book {
     public void addKeyword(String keyword) {
         keywords.add(keyword);
     }
+
 }

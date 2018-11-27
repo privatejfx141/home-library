@@ -12,17 +12,13 @@ public class MovieCrew extends Person {
     public static final String COMPOSER = MovieRoles.CO.toString();
     public static final String EDITOR = MovieRoles.E.toString();
     public static final String COSTUME_DESIGNER = MovieRoles.CD.toString();
-
     public static final String[] ROLES = new String[] { DIRECTOR, SCRIPTWRITER, CAST, PRODUCER, COMPOSER, EDITOR,
             COSTUME_DESIGNER };
-
-    private String role = "";
-    private boolean award;
 
     public static String getRoleDescriptor(String role) {
         if (role.equalsIgnoreCase("Director")) {
             return DIRECTOR;
-        } else if (role.equalsIgnoreCase("Scriptwriter")) {
+        } else if (role.equalsIgnoreCase("Script writer")) {
             return SCRIPTWRITER;
         } else if (role.equalsIgnoreCase("Cast")) {
             return CAST;
@@ -39,32 +35,67 @@ public class MovieCrew extends Person {
     }
 
     public static MovieCrew parseName(String name, String role, String gender, boolean award) {
-        MovieCrew crew = null;
+        MovieCrew member = new MovieCrew();
         name = name.trim();
-        String[] split = name.split(" ");
-        String firstName = "";
-        String middleName = "";
-        String lastName = "";
-        firstName = split[0];
+        String[] split = name.split("\\s+");
+        member.firstName = split[0];
         if (split.length == 2) {
-            lastName = split[1];
+            member.lastName = split[1];
         } else if (split.length == 3) {
-            middleName = split[1];
-            lastName = split[2];
+            member.middleName = split[1];
+            member.lastName = split[2];
         }
-        crew = new MovieCrew(firstName, middleName, lastName, role, gender, award);
-        return crew;
+        member.role = role.trim();
+        member.gender = gender.trim();
+        member.award = award;
+        return member;
     }
 
-    public MovieCrew(int id, String firstName, String middleName, String lastName, String role, String gender,
-            boolean award) {
-        super(id, firstName, middleName, lastName, gender);
-        this.role = role;
-        this.award = award;
+    private String role = "";
+    private boolean award;
+
+    public static class Builder extends Person.Builder {
+        private MovieCrew member;
+
+        public Builder() {
+            super();
+            person = new MovieCrew();
+            member = (MovieCrew) person;
+        }
+
+        public Builder setPerson(Person person) {
+            if (person != null) {
+                setId(person.getId());
+                setFirstName(person.getFirstName());
+                setMiddleName(person.getMiddleName());
+                setLastName(person.getLastName());
+                setGender(person.getGender());
+            }
+            return this;
+        }
+
+        public Builder setRole(String role) {
+            try {
+                member.role = role.trim();
+            } catch (NullPointerException e) {
+                member.role = "";
+            }
+            return this;
+        }
+
+        public Builder hasAward(boolean award) {
+            member.award = award;
+            return this;
+        }
+
+        @Override
+        public MovieCrew create() {
+            return member;
+        }
     }
 
-    public MovieCrew(String firstName, String middleName, String lastName, String role, String gender, boolean award) {
-        this(-1, firstName, middleName, lastName, role, gender, award);
+    private MovieCrew() {
+        super();
     }
 
     public String getRole() {
@@ -74,4 +105,5 @@ public class MovieCrew extends Person {
     public boolean getAward() {
         return award;
     }
+
 }

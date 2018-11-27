@@ -9,10 +9,11 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
 import com.hl.generics.MovieRoles;
+import com.hl.gui.HomeLibrary;
+import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.movie.MovieCrew;
 
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
@@ -22,18 +23,20 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBox;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.awt.event.ActionEvent;
 import java.awt.Color;
+import java.awt.Dialog;
 
-public class MovieCrewDialog extends JDialog {
+public class MovieCrewDialog extends HomeLibraryProductDialog {
+
     /**
      * Generated serial version UID.
      */
     private static final long serialVersionUID = -9130390966287303839L;
 
     private final JPanel contentPanel = new JPanel();
-    private HashMap<String, ArrayList<MovieCrew>> crewMembers;
     private JTextField firstNameField;
     private JTextField lastNameField;
     private JTextField middleNameField;
@@ -43,14 +46,43 @@ public class MovieCrewDialog extends JDialog {
     MovieCrew crew;
 
     /**
-     * Create the dialog.
-     * 
-     * @param parentDialog
-     * @param crewMembers
+     * Map of role descriptor -> crew members
      */
-    public MovieCrewDialog(MovieDialog parentDialog, HashMap<String, ArrayList<MovieCrew>> crewMembers) {
-        super(parentDialog, "Insert Film Crew", true);
-        this.crewMembers = crewMembers;
+    private HashMap<String, ArrayList<MovieCrew>> addedMembers;
+
+    public MovieCrewDialog(Dialog parent) {
+        this(parent, new HashMap<>(), null);
+    }
+
+    public MovieCrewDialog(Dialog parent, MovieCrew data) {
+        this(parent, new HashMap<>(), data);
+    }
+
+    public MovieCrewDialog(Dialog parent, HashMap<String, ArrayList<MovieCrew>> addedMembers) {
+        this(parent, addedMembers, null);
+    }
+
+    /**
+     * @wbp.parser.constructor
+     */
+    public MovieCrewDialog(Dialog parent, HashMap<String, ArrayList<MovieCrew>> addedMembers, MovieCrew data) {
+        super(parent, data);
+        initialize();
+        this.addedMembers = addedMembers;
+        if (data != null) {
+            populateFields(data);
+        }
+        setVisible(true);
+    }
+
+    private void initialize() {
+        createGUI();
+        addMandatoryField(firstNameField);
+        addMandatoryField(lastNameField);
+    }
+
+    @Override
+    public void createGUI() {
         setResizable(false);
         setBounds(100, 100, 450, 274);
         getContentPane().setLayout(new BorderLayout());
@@ -194,45 +226,88 @@ public class MovieCrewDialog extends JDialog {
         });
         cancelButton.setActionCommand("Cancel");
         buttonPane.add(cancelButton);
+
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(this);
     }
 
     protected void handleSubmit() {
         crew = parseFields();
         if (crew == null) {
             return;
+        } else {
+            // check if crew member was already added
+            String role = crew.getRole();
+            for (MovieCrew addedMember : addedMembers.get(role)) {
+                if (crew.compare(addedMember)) {
+                    String error = "Crew member already exists.";
+                    HomeLibrary.showSubmitErrorMessageBox(this, error);
+                    return;
+                }
+            }
+            System.out.println("Movie crew dialog: " + crew + " submitted.");
+            dispose();
         }
-        dispose();
     }
 
-    protected MovieCrew parseFields() {
-        String firstName = firstNameField.getText().trim();
-        String middleName = middleNameField.getText().trim();
-        String lastName = lastNameField.getText().trim();
-        String role = (String) roleBox.getSelectedItem();
-        String gender = (String) genderBox.getSelectedItem();
-        boolean award = awardCheckBox.isSelected();
-        if (firstName.isEmpty() || lastName.isEmpty()) {
-            String error = "All mandatory fields (in blue) must be filled in before submitting.";
-            JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-        } else {
-            int numCrew = 0;
-            if (crewMembers.get(role) != null) {
-                numCrew = crewMembers.get(role).size();
-            }
-            if (numCrew == 10 && role.equalsIgnoreCase("Cast")) {
+    @Override
+    public MovieCrew parseFields() {
+        if (checkMandatoryFields()) {
+            String roleName = String.valueOf(roleBox.getSelectedItem());
+            String roleDescriptor = MovieCrew.getRoleDescriptor(roleName);
+            ArrayList<MovieCrew> addedSelectedMembers = addedMembers.get(roleDescriptor);
+            int crewSize = addedSelectedMembers.size();
+            String gender = (String) genderBox.getSelectedItem();
+            boolean award = awardCheckBox.isSelected();
+            if (roleDescriptor.equalsIgnoreCase("C") && crewSize == 10) {
                 String error = "Only at most 10 members of the role Cast can be added.";
-                JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            } else if (numCrew == 3 && !role.equalsIgnoreCase("Cast")) {
-                String error = "Only at most 3 members of the role " + role + " can be added.";
-                JOptionPane.showMessageDialog(this, error, "Submit Error", JOptionPane.ERROR_MESSAGE);
-            } else {
-                return new MovieCrew(firstName, middleName, lastName, role, gender, award);
+                HomeLibrary.showSubmitErrorMessageBox(this, error);
+                return null;
+            } else if (!roleDescriptor.equalsIgnoreCase("C") && crewSize == 3) {
+                String error = "Only at most 3 members of the role " + roleName + " can be added.";
+                HomeLibrary.showSubmitErrorMessageBox(this, error);
+                return null;
             }
+            MovieCrew member = (MovieCrew) new MovieCrew.Builder() //
+                    .setRole(roleDescriptor) //
+                    .hasAward(award) //
+                    .setGender(gender) //
+                    .setFirstName(firstNameField.getText()) //
+                    .setMiddleName(middleNameField.getText()) //
+                    .setLastName(lastNameField.getText()) //
+                    .create();
+            return member;
         }
         return null;
     }
 
-    public MovieCrew getCrew() {
+    @Override
+    public MovieCrew getParsedData() {
         return crew;
     }
+
+    @Override
+    public void populateFields(Object data) {
+        MovieCrew member = (MovieCrew) data;
+        setTitle(getTitle() + "(ID: " + member.getId() + ")");
+        firstNameField.setText(member.getFirstName());
+        middleNameField.setText(member.getMiddleName());
+        lastNameField.setText(member.getLastName());
+        genderBox.setSelectedItem(member.getGender());
+        roleBox.setSelectedItem(MovieRoles.getRoleName(member.getRole()));
+        awardCheckBox.setSelected(member.getAward());
+    }
+
+    @Override
+    public boolean insertToDatabase(Object data) {
+        // nothing to do here
+        return true;
+    }
+
+    @Override
+    public boolean updateToDatabase(Object data) {
+        // nothing to do here
+        return true;
+    }
+
 }
