@@ -8,7 +8,7 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import com.hl.generics.MovieRoles;
+import com.hl.generics.Roles;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.movie.MovieCrew;
@@ -23,7 +23,6 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JCheckBox;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.awt.event.ActionEvent;
 import java.awt.Color;
@@ -40,10 +39,12 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
     private JTextField firstNameField;
     private JTextField lastNameField;
     private JTextField middleNameField;
-    JComboBox<String> genderBox;
-    JComboBox<String> roleBox;
-    JCheckBox awardCheckBox;
-    MovieCrew crew;
+    private JComboBox<String> genderBox;
+    private JComboBox<String> roleBox;
+    private JCheckBox awardCheckBox;
+
+    private MovieCrew crew;
+    private int crewId = -1;
 
     /**
      * Map of role descriptor -> crew members
@@ -83,6 +84,7 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
 
     @Override
     public void createGUI() {
+        setTitle("Submit Movie Crew Member");
         setResizable(false);
         setBounds(100, 100, 450, 274);
         getContentPane().setLayout(new BorderLayout());
@@ -181,8 +183,8 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
         contentPanel.add(roleLabel, gbc_roleLabel);
 
         ArrayList<String> rolesList = new ArrayList<>();
-        for (MovieRoles role : MovieRoles.values()) {
-            rolesList.add(MovieRoles.getRoleName(role));
+        for (String role : MovieCrew.ROLES) {
+            rolesList.add(role);
         }
 
         roleBox = new JComboBox<String>();
@@ -208,6 +210,7 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
 
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent e) {
                 handleSubmit();
             }
@@ -245,7 +248,7 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
                     return;
                 }
             }
-            System.out.println("Movie crew dialog: " + crew + " submitted.");
+            System.out.println("Movie crew dialog: " + crew + " [" + role + "] submitted.");
             dispose();
         }
     }
@@ -253,28 +256,29 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
     @Override
     public MovieCrew parseFields() {
         if (checkMandatoryFields()) {
-            String roleName = String.valueOf(roleBox.getSelectedItem());
-            String roleDescriptor = MovieCrew.getRoleDescriptor(roleName);
-            ArrayList<MovieCrew> addedSelectedMembers = addedMembers.get(roleDescriptor);
+            String role = String.valueOf(roleBox.getSelectedItem());
+            ArrayList<MovieCrew> addedSelectedMembers = addedMembers.get(role);
             int crewSize = addedSelectedMembers.size();
             String gender = (String) genderBox.getSelectedItem();
             boolean award = awardCheckBox.isSelected();
-            if (roleDescriptor.equalsIgnoreCase("C") && crewSize == 10) {
+            String castRole = Roles.CAST.toString();
+            if (role.equalsIgnoreCase(castRole) && crewSize >= 10) {
                 String error = "Only at most 10 members of the role Cast can be added.";
                 HomeLibrary.showSubmitErrorMessageBox(this, error);
                 return null;
-            } else if (!roleDescriptor.equalsIgnoreCase("C") && crewSize == 3) {
-                String error = "Only at most 3 members of the role " + roleName + " can be added.";
+            } else if (!role.equalsIgnoreCase(castRole) && crewSize >= 3) {
+                String error = "Only at most 3 members of the role " + role + " can be added.";
                 HomeLibrary.showSubmitErrorMessageBox(this, error);
                 return null;
             }
             MovieCrew member = (MovieCrew) new MovieCrew.Builder() //
-                    .setRole(roleDescriptor) //
+                    .setRole(role) //
                     .hasAward(award) //
                     .setGender(gender) //
                     .setFirstName(firstNameField.getText()) //
                     .setMiddleName(middleNameField.getText()) //
                     .setLastName(lastNameField.getText()) //
+                    .setId(crewId) //
                     .create();
             return member;
         }
@@ -289,12 +293,13 @@ public class MovieCrewDialog extends HomeLibraryProductDialog {
     @Override
     public void populateFields(Object data) {
         MovieCrew member = (MovieCrew) data;
-        setTitle(getTitle() + "(ID: " + member.getId() + ")");
+        crewId = member.getId();
+        setTitle(getTitle() + " (ID: " + crewId + ")");
         firstNameField.setText(member.getFirstName());
         middleNameField.setText(member.getMiddleName());
         lastNameField.setText(member.getLastName());
         genderBox.setSelectedItem(member.getGender());
-        roleBox.setSelectedItem(MovieRoles.getRoleName(member.getRole()));
+        roleBox.setSelectedItem(member.getRole());
         awardCheckBox.setSelected(member.getAward());
     }
 

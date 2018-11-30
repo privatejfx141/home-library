@@ -139,6 +139,10 @@ public class MusicTrack {
         return language;
     }
 
+    public boolean hasLanguage() {
+        return language != null && !language.isEmpty();
+    }
+
     public List<Person> getSingers() {
         return singers;
     }
@@ -161,6 +165,10 @@ public class MusicTrack {
 
     public String getDiskType() {
         return diskType;
+    }
+
+    public boolean hasDiskType() {
+        return diskType != null && !diskType.isEmpty();
     }
 
     @Override

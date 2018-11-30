@@ -12,6 +12,7 @@ import javax.swing.border.EmptyBorder;
 
 import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
+import com.hl.database.DatabaseUpdater;
 import com.hl.exceptions.DatabaseInsertException;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
@@ -45,7 +46,6 @@ public class BookDialog extends HomeLibraryProductDialog {
      * Generated serial version UID.
      */
     private static final long serialVersionUID = -8642016230269365480L;
-
     private final JPanel contentPanel = new JPanel();
 
     private JTextField isbnField;
@@ -103,7 +103,7 @@ public class BookDialog extends HomeLibraryProductDialog {
     public BookDialog(Frame parent, Book data) {
         super(parent, data);
         initialize();
-        if (data != null) {
+        if (isUpdating = data != null) {
             populateFields(data);
         }
         setVisible(true);
@@ -121,7 +121,7 @@ public class BookDialog extends HomeLibraryProductDialog {
     @Override
     public void createGUI() {
         setResizable(false);
-        setBounds(100, 100, 480, 700);
+        setBounds(100, 100, 480, 720);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(contentPanel, BorderLayout.NORTH);
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
@@ -380,13 +380,21 @@ public class BookDialog extends HomeLibraryProductDialog {
 
     private void handleSubmit() {
         // parse field to get book data
-        Book book = (Book) parseFields();
+        book = (Book) parseFields();
         if (book == null) {
             return;
         }
         // insert into database
-        if (insertToDatabase(book)) {
-            dispose();
+        if (isUpdating) {
+            if (updateToDatabase(book)) {
+                System.out.println("Book dialog: updated to DB.");
+                dispose();
+            }
+        } else {
+            if (insertToDatabase(book)) {
+                System.out.println("Book dialog: inserted to DB.");
+                dispose();
+            }
         }
     }
 
@@ -394,15 +402,24 @@ public class BookDialog extends HomeLibraryProductDialog {
     public void populateFields(Object data) {
         book = (Book) data;
         String isbn = book.getIsbn();
+        // populate text fields
         setTitle(getTitle() + " (ISBN: " + isbn + ")");
         isbnField.setText(isbn);
         isbnField.setEnabled(false);
         nameField.setText(book.getTitle());
         publisherField.setText(book.getPublisher());
-        editionField.setText(Integer.toString(book.getEditionNumber()));
+        if (book.getEditionNumber() > 0) {
+            editionField.setText(Integer.toString(book.getEditionNumber()));
+        }
         pagesField.setText(Integer.toString(book.getNumberOfPages()));
         yearField.setText(Integer.toString(book.getYearOfPublication()));
         descriptionField.setText(book.getDescription());
+        // populate list with authors
+        for (Person author : book.getAuthors()) {
+            addAuthor(author);
+        }
+        // populate keywords field
+        keywordField.setText(String.join("; ", book.getKeywords()));
     }
 
     @Override
@@ -449,12 +466,17 @@ public class BookDialog extends HomeLibraryProductDialog {
 
     @Override
     public boolean insertToDatabase(Object data) {
+        boolean success = false;
+        Book book = (Book) data;
         Connection connection = DatabaseDriver.connectToDatabase();
         try {
-            DatabaseInserter.insertBook(connection, book);
-            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.INSERT_DB_SUCCESS_MSG);
-            return true;
-        } catch (DatabaseInsertException e) {
+            String result = DatabaseInserter.insertBook(connection, book);
+            if (success = result != null && !result.isEmpty()) {
+                HomeLibrary.showSubmitMessageBox(this, HomeLibrary.INSERT_DB_SUCCESS_MSG);
+            } else {
+                HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
+            }
+        } catch (Exception e) {
             HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             e.printStackTrace();
         } finally {
@@ -464,13 +486,25 @@ public class BookDialog extends HomeLibraryProductDialog {
                 e.printStackTrace();
             }
         }
-        return false;
+        return success;
     }
 
     @Override
     public boolean updateToDatabase(Object data) {
-        // TODO Auto-generated method stub
-        return false;
+        boolean success = false;
+        Book book = (Book) data;
+        Connection connection = DatabaseDriver.connectToDatabase();
+        if (success = DatabaseUpdater.updateBook(connection, book)) {
+            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
+        } else {
+            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
+        }
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return success;
     }
 
 }

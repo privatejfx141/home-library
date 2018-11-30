@@ -87,7 +87,7 @@ public class Book {
         public Builder setEditionNumber(String edition) {
             if (edition != null && !(edition = edition.trim()).isEmpty()) {
                 try {
-                    return setYearOfPublication(Integer.parseInt(edition));
+                    return setEditionNumber(Integer.parseInt(edition));
                 } catch (NumberFormatException e) {
                     String msg = String.format(HomeLibrary.INTEGER_FIELD_MSG, "Edition number");
                     throw new NumberFormatException(msg);
@@ -159,12 +159,16 @@ public class Book {
         return edition;
     }
 
+    public boolean hasEditionNumber() {
+        return edition > 0;
+    }
+
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public boolean hasDescription() {
+        return description != null && !description.isEmpty();
     }
 
     public List<Person> getAuthors() {

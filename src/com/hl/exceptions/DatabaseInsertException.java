@@ -7,4 +7,12 @@ public class DatabaseInsertException extends Exception {
      */
     private static final long serialVersionUID = -7207009425098455759L;
 
+    public DatabaseInsertException() {
+        super();
+    }
+    
+    public DatabaseInsertException(String message) {
+        super(message);
+    }
+    
 }

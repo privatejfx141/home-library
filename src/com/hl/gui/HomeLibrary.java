@@ -3,6 +3,7 @@ package com.hl.gui;
 import javax.swing.*;
 
 import com.hl.gui.data.RemoveDialog;
+import com.hl.gui.data.UpdateDialog;
 import com.hl.gui.data.book.BookDialog;
 import com.hl.gui.data.movie.MovieDialog;
 import com.hl.gui.data.music.MusicDialog;
@@ -18,24 +19,15 @@ public class HomeLibrary extends JFrame {
      */
     private static final long serialVersionUID = 9186575314197946439L;
 
-    public static final int INSERT_RECORD = 0;
-    public static final int UPDATE_RECORD = 1;
-
     public static final String MANDATORY_FIELD_MSG = "All mandatory fields (in blue) must be filled in before submitting.";
     public static final String INTEGER_FIELD_MSG = "%s must be an integer.";
     public static final String INSERT_DB_SUCCESS_MSG = "Insertion to HL database was successful!";
     public static final String INSERT_DB_FAILURE_MSG = "Error! Insertion to HL database was not successful.";
+    public static final String UPDATE_DB_SUCCESS_MSG = "Update to HL database was successful!";
+    public static final String UPDATE_DB_FAILURE_MSG = "Error! Update to HL database was not successful.";
 
     public static void main(String args[]) {
-        HomeLibrary HomeLibraryForm = new HomeLibrary();
-        HomeLibraryForm.setResizable(false);
-        HomeLibraryForm.setTitle("Home Library");
-        HomeLibraryForm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        HomeLibraryForm.setLocationRelativeTo(null);
-        HomeLibraryForm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        HomeLibraryForm.pack();
-        HomeLibraryForm.setVisible(true);
+        new HomeLibrary();
     }
 
     public static void showSubmitMessageBox(Component parentComponent, String message) {
@@ -89,10 +81,17 @@ public class HomeLibrary extends JFrame {
         });
 
         JMenuItem updateDataItem = new JMenuItem("Update");
+        updateDataItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                handleUpdateItem();
+            }
+        });
         dataMenu.add(updateDataItem);
 
         JMenuItem removeDataItem = new JMenuItem("Remove");
         removeDataItem.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent arg0) {
                 handleRemoveItem();
             }
@@ -230,15 +229,32 @@ public class HomeLibrary extends JFrame {
         JPanel panel = new JPanel();
         getContentPane().add(panel, BorderLayout.SOUTH);
 
-        JButton dataButton = new JButton("Data");
-        panel.add(dataButton);
-        dataButton.setVerticalAlignment(SwingConstants.BOTTOM);
+        JButton aboutButton = new JButton("About");
+        aboutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String message = "Home Library application created by Yun Jie (Jeffrey) Li."
+                        + "\nAssignments 1 and 3, CSCC43 Fall 2018.";
+                int msgType = JOptionPane.INFORMATION_MESSAGE;
+                JOptionPane.showMessageDialog(HomeLibrary.this, message, "About", msgType);
+            }
+        });
+        aboutButton.setMnemonic('a');
+        panel.add(aboutButton);
 
-        JButton viewButton = new JButton("View");
-        panel.add(viewButton);
-
-        JButton reportButton = new JButton("Report");
-        panel.add(reportButton);
+        JButton helpButton = new JButton("Help");
+        helpButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                String message = "Mandatory text fields are labeled in blue."
+                        + "\nTo edit an item from a JList, double-click with left mouse button."
+                        + "\nTo delete an item from a JList, click with right mouse button.";
+                int msgType = JOptionPane.INFORMATION_MESSAGE;
+                JOptionPane.showMessageDialog(HomeLibrary.this, message, "Help", msgType);
+            }
+        });
+        helpButton.setMnemonic('h');
+        panel.add(helpButton);
 
         JButton exitButton = new JButton("Exit");
         exitButton.addActionListener(new ActionListener() {
@@ -250,55 +266,42 @@ public class HomeLibrary extends JFrame {
         exitButton.setMnemonic('x');
         panel.add(exitButton);
 
+        setResizable(false);
+        setTitle("Home Library");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(this);
+        pack();
+        setVisible(true);
     }
 
     protected void handleQuery() {
-        try {
-            QueryDialog dialog = new QueryDialog(this);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-            dialog.setVisible(true);
-            dialog.setLocationRelativeTo(this);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        QueryDialog dialog = new QueryDialog(this);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    protected void handleUpdateItem() {
+        new UpdateDialog(this);
     }
 
     protected void handleRemoveItem() {
         new RemoveDialog(this);
     }
 
-    private void handleInsertBook() {
-        try {
-            BookDialog dialog = new BookDialog(this);
-            dialog.setVisible(true);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    protected void handleInsertBook() {
+        new BookDialog(this);
     }
 
-    private void handleInsertMusic() {
-        try {
-            MusicDialog dialog = new MusicDialog(this);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-            dialog.setVisible(true);
-            dialog.setLocationRelativeTo(this);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    protected void handleInsertMusic() {
+        new MusicDialog(this);
     }
 
-    private void handleInsertMovie() {
-        try {
-            MovieDialog dialog = new MovieDialog(this);
-            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-            dialog.setVisible(true);
-            dialog.setLocationRelativeTo(this);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    protected void handleInsertMovie() {
+        new MovieDialog(this);
     }
 
-    private void handleReport(int reportNumber) {
+    protected void handleReport(int reportNumber) {
         new ReportDialog(this, reportNumber);
     }
 

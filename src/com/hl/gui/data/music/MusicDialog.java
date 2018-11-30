@@ -7,18 +7,15 @@ import java.awt.Frame;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
 import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
-import com.hl.exceptions.DatabaseInsertException;
+import com.hl.database.DatabaseUpdater;
 import com.hl.exceptions.NameFormatException;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
-import com.hl.gui.data.book.BookAuthorDialog;
-import com.hl.record.Person;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
@@ -39,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.DefaultListModel;
 import javax.swing.JScrollPane;
 
@@ -58,6 +54,9 @@ public class MusicDialog extends HomeLibraryProductDialog {
 
     private HashMap<String, MusicTrack> trackMap = new HashMap<>();
     private MusicAlbum album;
+
+    private String oldAlbumName = "";
+    private int oldAlbumYear = -1;
 
     public static void main(String[] args) {
         new MusicDialog(null);
@@ -103,6 +102,9 @@ public class MusicDialog extends HomeLibraryProductDialog {
         }
     };
 
+    /**
+     * @wbp.parser.constructor
+     */
     public MusicDialog(Frame parent) {
         this(parent, null);
     }
@@ -115,7 +117,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
     public MusicDialog(Frame parent, MusicAlbum data) {
         super(parent, data);
         initialize();
-        if (data != null) {
+        if (isUpdating = data != null) {
             populateFields(data);
         }
         setVisible(true);
@@ -126,6 +128,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
         addMandatoryField(nameField);
         addMandatoryField(yearField);
         addMandatoryField(producerField);
+        System.out.println("Music dialog: initialized.");
     }
 
     private void handleOpenDialog(MusicTrack oldTrack) {
@@ -151,6 +154,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
         trackMap.put(trackKey, track);
         DefaultListModel<String> model = (DefaultListModel<String>) trackList.getModel();
         model.addElement(trackKey);
+        System.out.println("Music dialog: " + trackKey + " added.");
     }
 
     private void removeMusicTrack(MusicTrack track) {
@@ -158,6 +162,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
         trackMap.remove(trackKey);
         DefaultListModel<String> model = (DefaultListModel<String>) trackList.getModel();
         model.removeElement(trackKey);
+        System.out.println("Music dialog: " + trackKey + " removed.");
     }
 
     private void handleSubmit() {
@@ -166,16 +171,24 @@ public class MusicDialog extends HomeLibraryProductDialog {
         if (album == null) {
             return;
         }
-        // insert into database
-        if (insertToDatabase(album)) {
-            dispose();
+        // update or insert to database
+        if (isUpdating) {
+            if (updateToDatabase(album)) {
+                System.out.println("Music dialog: updated to DB.");
+                dispose();
+            }
+        } else {
+            if (insertToDatabase(album)) {
+                System.out.println("Music dialog: inserted to DB.");
+                dispose();
+            }
         }
     }
 
     @Override
     public void createGUI() {
         setResizable(false);
-        setBounds(100, 100, 450, 470);
+        setBounds(100, 100, 450, 480);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
         getContentPane().add(contentPanel, BorderLayout.NORTH);
@@ -226,6 +239,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
         yearField.setColumns(10);
 
         JLabel producerLabel = new JLabel("Producer");
+        producerLabel.setToolTipText("Right-click to clear");
         producerLabel.setForeground(Color.BLUE);
         GridBagConstraints gbc_producerLabel = new GridBagConstraints();
         gbc_producerLabel.fill = GridBagConstraints.BOTH;
@@ -290,9 +304,16 @@ public class MusicDialog extends HomeLibraryProductDialog {
     @Override
     public void populateFields(Object data) {
         MusicAlbum album = (MusicAlbum) data;
-        nameField.setText(album.getName());
-        yearField.setText(Integer.toString(album.getYear()));
+        oldAlbumName = album.getPrimaryKeyName();
+        oldAlbumYear = album.getPrimaryKeyYear();
+        // populate text fields
+        nameField.setText(oldAlbumName);
+        yearField.setText(Integer.toString(oldAlbumYear));
         producerField.setText(album.getProducer().getName());
+        // populate list with music tracks
+        for (MusicTrack track : album.getMusicTracks()) {
+            addMusicTrack(track);
+        }
     }
 
     @Override
@@ -305,6 +326,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
             }
             try {
                 MusicAlbum album = new MusicAlbum.Builder() //
+                        .setPrimaryKey(oldAlbumName, oldAlbumYear) //
                         .setName(nameField.getText()) //
                         .setProducer(producerField.getText()) //
                         .setYear(yearField.getText()) //
@@ -335,7 +357,7 @@ public class MusicDialog extends HomeLibraryProductDialog {
             } else {
                 HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             }
-        } catch (DatabaseInsertException e) {
+        } catch (SQLException e) {
             HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             e.printStackTrace();
         } finally {
@@ -350,8 +372,20 @@ public class MusicDialog extends HomeLibraryProductDialog {
 
     @Override
     public boolean updateToDatabase(Object data) {
-        // TODO Auto-generated method stub
-        return false;
+        boolean result = false;
+        MusicAlbum album = (MusicAlbum) data;
+        Connection connection = DatabaseDriver.connectToDatabase();
+        if (result = DatabaseUpdater.updateMusicAlbum(connection, album)) {
+            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
+        } else {
+            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
+        }
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
 }

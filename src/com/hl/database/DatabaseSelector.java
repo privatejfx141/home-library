@@ -14,8 +14,33 @@ import com.hl.record.movie.MovieCrew;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
-public class DatabaseSelector {
+public class DatabaseSelector { 
 
+    public static Object getProduct(Connection connection, String productName) {
+        // get book if exists
+        String bookISBN = getBookISBN(connection, productName);
+        if (bookISBN != null) {
+            return getBook(connection, bookISBN);
+        }
+        // get music album if exists
+        int year = getMusicAlbumYear(connection, productName);
+        if (year > 0) {
+            return getMusicAlbum(connection, productName, year);
+        }
+        // get movie if exists
+        year = getMovieYear(connection, productName);
+        if (year > 0) {
+            return getMovie(connection, productName, year);
+        }
+        return null;
+    }
+
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param person     Person data to search ID for.
+     * @return
+     */
     public static int getPersonId(Connection connection, Person person) {
         int personId = -1;
         String firstName = person.getFirstName();
@@ -34,7 +59,29 @@ public class DatabaseSelector {
         }
         return personId;
     }
+    
+    public static boolean personExists(Connection connection, int personId) {
+        boolean exists = false;
+        String sql = "SELECT * FROM PeopleInvolved WHERE ID = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, personId);
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                exists = true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return exists;
+    }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param bookTitle  Title of the book.
+     * @return
+     */
     public static String getBookISBN(Connection connection, String bookTitle) {
         String isbn = null;
         String sql = "SELECT DISTINCT ISBN FROM Book WHERE LOWER(Title) = ?";
@@ -51,6 +98,12 @@ public class DatabaseSelector {
         return isbn;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param keyword    Keyword to search ID for.
+     * @return
+     */
     public static int getKeywordId(Connection connection, String keyword) {
         int keywordId = -1;
         String sql = "SELECT DISTINCT ID FROM Keyword WHERE LOWER(tag) = ?";
@@ -67,9 +120,15 @@ public class DatabaseSelector {
         return keywordId;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param movieName  Title of the movie.
+     * @return
+     */
     public static int getMovieYear(Connection connection, String movieName) {
         int year = -1;
-        String sql = "SELECT DISTINCT Year FROM Movie WHERE LOWER(MovieName) = ?";
+        String sql = "SELECT DISTINCT Year FROM Movie WHERE LOWER(MovieName) = ? ORDER BY Year LIMIT 1";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, movieName.toLowerCase());
@@ -83,6 +142,12 @@ public class DatabaseSelector {
         return year;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param role       Movie crew role type to search ID for.
+     * @return
+     */
     public static int getMovieRoleId(Connection connection, String role) {
         int roleId = -1;
         String sql = "SELECT DISTINCT ID FROM Role WHERE LOWER(Description) = ?";
@@ -99,9 +164,15 @@ public class DatabaseSelector {
         return roleId;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @return
+     */
     public static int getMusicAlbumYear(Connection connection, String albumName) {
         int year = -1;
-        String sql = "SELECT DISTINCT Year From Music WHERE LOWER(AlbumName) = ?";
+        String sql = "SELECT DISTINCT Year From Music WHERE LOWER(AlbumName) = ? ORDER BY Year LIMIT 1";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, albumName.toLowerCase());
@@ -115,6 +186,12 @@ public class DatabaseSelector {
         return year;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param personId   ID of the person's record in the PeopleInvolved table.
+     * @return
+     */
     public static Person getPerson(Connection connection, int personId) {
         Person person = null;
         String sql = "SELECT * FROM PeopleInvolved WHERE ID = ?";
@@ -137,6 +214,12 @@ public class DatabaseSelector {
         return person;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param isbn       ISBN of the book.
+     * @return
+     */
     public static Book getBook(Connection connection, String isbn) {
         Book book = null;
         String sql = "SELECT * FROM Book WHERE ISBN = ?";
@@ -146,6 +229,7 @@ public class DatabaseSelector {
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 book = new Book.Builder() //
+                        .setIsbn(results.getString("ISBN")) //
                         .setTitle(results.getString("Title")) //
                         .setPublisher(results.getString("Publisher")) //
                         .setNumberOfPages(results.getInt("NumberOfPages")) //
@@ -162,6 +246,12 @@ public class DatabaseSelector {
         return book;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param isbn       ISBN of the book.
+     * @return
+     */
     public static List<Integer> getBookAuthorIds(Connection connection, String isbn) {
         List<Integer> authorIds = new ArrayList<>();
         String sql = "SELECT Author_ID FROM BookAuthor WHERE ISBN = ?";
@@ -179,6 +269,12 @@ public class DatabaseSelector {
         return authorIds;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param isbn       ISBN of the book.
+     * @return
+     */
     public static List<Person> getBookAuthors(Connection connection, String isbn) {
         List<Person> authors = new ArrayList<>();
         for (int authorId : getBookAuthorIds(connection, isbn)) {
@@ -188,6 +284,12 @@ public class DatabaseSelector {
         return authors;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param isbn       ISBN of the book.
+     * @return
+     */
     public static List<Integer> getBookKeywordIds(Connection connection, String isbn) {
         List<Integer> keywordIds = new ArrayList<>();
         String sql = "SELECT Keyword_ID FROM BookKeyword WHERE ISBN = ?";
@@ -205,6 +307,12 @@ public class DatabaseSelector {
         return keywordIds;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param isbn       ISBN of the book.
+     * @return
+     */
     public static List<String> getBookKeywords(Connection connection, String isbn) {
         List<String> keywords = new ArrayList<>();
         for (int keywordId : getBookKeywordIds(connection, isbn)) {
@@ -214,6 +322,12 @@ public class DatabaseSelector {
         return keywords;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param keywordId  ID of the keyword's record in the Keyword table.
+     * @return
+     */
     public static String getKeyword(Connection connection, int keywordId) {
         String keyword = null;
         String sql = "SELECT Tag FROM Keyword WHERE ID = ?";
@@ -230,17 +344,26 @@ public class DatabaseSelector {
         return keyword;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @param year       Year of when the product was published or released.
+     * @return
+     */
     public static MusicAlbum getMusicAlbum(Connection connection, String albumName, int year) {
         MusicAlbum album = null;
         Person producer = null;
         ArrayList<MusicTrack> tracks = new ArrayList<>();
-        String sql = "SELECT MusicName, Language, DiskType, Producer_ID FROM Music WHERE LOWER(AlbumName) = ? AND Year = ?";
+        String sql = "SELECT AlbumName, MusicName, Language, DiskType, Producer_ID FROM Music "
+                + "WHERE LOWER(AlbumName) = ? AND Year = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, albumName.toLowerCase());
             statement.setInt(2, year);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
+                albumName = results.getString("AlbumName");
                 String trackName = results.getString("MusicName");
                 String language = results.getString("Language");
                 boolean diskType = results.getBoolean("DiskType");
@@ -255,6 +378,7 @@ public class DatabaseSelector {
                     .setName(albumName) //
                     .setYear(year) //
                     .addTracks(tracks) //
+                    .setProducer(producer) //
                     .create();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -262,6 +386,16 @@ public class DatabaseSelector {
         return album;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @param year       Year of when the product was published or released.
+     * @param trackName  Name of the music track.
+     * @param language
+     * @param diskType
+     * @return
+     */
     public static MusicTrack getMusicTrack(Connection connection, String albumName, int year, String trackName,
             String language, boolean diskType) {
         MusicTrack track = null;
@@ -299,6 +433,13 @@ public class DatabaseSelector {
         return track;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @param year       Year of when the product was published or released.
+     * @return
+     */
     public static List<Integer> getMusicCrewIds(Connection connection, String albumName, int year) {
         List<Integer> crewIds = new ArrayList<>();
         // add people involved music
@@ -346,10 +487,21 @@ public class DatabaseSelector {
         return crewIds;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @param year       Year of when the product was published or released.
+     * @param trackName  Name of the music track.
+     * @param musicRole  Role type of the music crew member ["Arranger, "Composer",
+     *                   "Song writer"].
+     * @return
+     */
     public static Person getMusicCrew(Connection connection, String albumName, int year, String trackName,
             String musicRole) {
         Person crew = null;
-        String sql = "SELECT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE AlbumName = ? AND Year = ? AND MusicName = ?";
+        String sql = "SELECT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE LOWER(AlbumName) = ? "
+                + "AND Year = ? AND LOWER(MusicName) = ?";
         // if song writer
         if (musicRole.startsWith("S")) {
             sql += " AND isSongwriter";
@@ -364,9 +516,9 @@ public class DatabaseSelector {
         }
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, albumName);
+            statement.setString(1, albumName.toLowerCase());
             statement.setInt(2, year);
-            statement.setString(3, trackName);
+            statement.setString(3, trackName.toLowerCase());
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 int personId = results.getInt("PeopleInvolved_ID");
@@ -378,6 +530,15 @@ public class DatabaseSelector {
         return crew;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @param year       Year of when the product was published or released.
+     * @param trackName  Name of the music track.
+     * @param personId   ID of the person's record in the PeopleInvolved table.
+     * @return
+     */
     public static boolean isMusicCrew(Connection connection, String albumName, int year, String trackName,
             int personId) {
         String sql = "SELECT * FROM PeopleInvolvedMusic WHERE LOWER(AlbumName) = ? "
@@ -398,14 +559,23 @@ public class DatabaseSelector {
         return false;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Title of the music album.
+     * @param year       Year of when the product was published or released.
+     * @param trackName  Name of the music track.
+     * @return
+     */
     public static List<Person> getMusicSingers(Connection connection, String albumName, int year, String trackName) {
         List<Person> singers = new ArrayList<>();
-        String sql = "SELECT PeopleInvolved_ID FROM MusicSinger WHERE AlbumName = ? AND Year = ? AND MusicName = ?";
+        String sql = "SELECT PeopleInvolved_ID FROM MusicSinger WHERE LOWER(AlbumName) = ? "
+                + "AND Year = ? AND LOWER(MusicName) = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, albumName);
+            statement.setString(1, albumName.toLowerCase());
             statement.setInt(2, year);
-            statement.setString(3, trackName);
+            statement.setString(3, trackName.toLowerCase());
             ResultSet results = statement.executeQuery();
             while (results.next()) {
                 int personId = results.getInt("PeopleInvolved_ID");
@@ -418,17 +588,25 @@ public class DatabaseSelector {
         return singers;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param movieName  Title of the movie.
+     * @param year       Year of when the product was published or released.
+     * @return
+     */
     public static Movie getMovie(Connection connection, String movieName, int year) {
         Movie movie = null;
         // get all crew members
         ArrayList<MovieCrew> crewMembers = new ArrayList<>();
-        String sql = "SELECT * FROM CrewMember WHERE MovieName = ? AND ReleaseYear = ?";
+        String sql = "SELECT * FROM CrewMember WHERE LOWER(MovieName) = ? AND ReleaseYear = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, movieName);
+            statement.setString(1, movieName.toLowerCase());
             statement.setInt(2, year);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
+                movieName = results.getString("MovieName");
                 int personId = results.getInt("PeopleInvolved_ID");
                 int roleId = results.getInt("Role_ID");
                 MovieCrew crew = getMovieCrew(connection, personId, movieName, year, roleId);
@@ -437,13 +615,24 @@ public class DatabaseSelector {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        movie = new Movie.Builder().setName(movieName).setYear(year).addCrewMembers(crewMembers).create();
+        movie = new Movie.Builder() //
+                .setName(movieName) //
+                .setYear(year) //
+                .addCrewMembers(crewMembers) //
+                .create();
         return movie;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param movieName  Title of the movie.
+     * @param year       Year of when the product was published or released.
+     * @return
+     */
     public static List<Integer> getMovieCrewIds(Connection connection, String movieName, int year) {
         List<Integer> crewIds = new ArrayList<>();
-        String sql = "SELECT PeopleInvolved_ID FROM CrewMember WHERE LOWER(MovieName) = ? AND Year = ?";
+        String sql = "SELECT PeopleInvolved_ID FROM CrewMember WHERE LOWER(MovieName) = ? AND ReleaseYear = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, movieName.toLowerCase());
@@ -459,6 +648,15 @@ public class DatabaseSelector {
         return crewIds;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param personId   ID of the person's record in the PeopleInvolved table.
+     * @param movieName  Title of the movie.
+     * @param year       Year of when the product was published or released.
+     * @param roleId     ID of the crew member role type in the Role table.
+     * @return
+     */
     public static MovieCrew getMovieCrew(Connection connection, int personId, String movieName, int year, int roleId) {
         MovieCrew crew = null;
         try {
@@ -473,6 +671,12 @@ public class DatabaseSelector {
         return crew;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param roleId     ID of the crew member role type in the Role table.
+     * @return
+     */
     public static String getMovieRole(Connection connection, int roleId) {
         String role = null;
         String sql = "SELECT Description FROM Role WHERE ID = ?";
@@ -489,13 +693,21 @@ public class DatabaseSelector {
         return role;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param personId   ID of the person's record in the PeopleInvolved table.
+     * @param movieName  Title of the movie.
+     * @param year       Year of when the product was published or released.
+     * @return
+     */
     public static boolean getMovieAward(Connection connection, int personId, String movieName, int year) {
         boolean award = false;
-        String sql = "SELECT Award FROM Award WHERE PeopleInvolved_ID = ? AND MovieName = ? And Year = ?";
+        String sql = "SELECT Award FROM Award WHERE PeopleInvolved_ID = ? AND LOWER(MovieName) = ? And Year = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setInt(1, personId);
-            statement.setString(2, movieName);
+            statement.setString(2, movieName.toLowerCase());
             statement.setInt(3, year);
             ResultSet results = statement.executeQuery();
             while (results.next()) {
@@ -507,12 +719,20 @@ public class DatabaseSelector {
         return award;
     }
 
+    /**
+     * 
+     * @param connection Connection to the HL database.
+     * @param personId   ID of the person's record in the PeopleInvolved table.
+     * @param movieName  Title of the movie.
+     * @param year       Year of when the product was published or released.
+     * @return
+     */
     public static boolean hasMovieAward(Connection connection, int personId, String movieName, int year) {
-        String sql = "SELECT * FROM Award WHERE PeopleInvolved_ID = ? AND MovieName = ? And Year = ?";
+        String sql = "SELECT * FROM Award WHERE PeopleInvolved_ID = ? AND LOWER(MovieName) = ? And Year = ?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setInt(1, personId);
-            statement.setString(2, movieName);
+            statement.setString(2, movieName.toLowerCase());
             statement.setInt(3, year);
             ResultSet results = statement.executeQuery();
             while (results.next()) {

@@ -14,8 +14,21 @@ public class MusicAlbum {
     private Person producer;
     private ArrayList<MusicTrack> tracks;
 
+    private String pkName = "";
+    private int pkYear = -1;
+
     public static class Builder {
         private MusicAlbum album = new MusicAlbum();
+
+        public Builder setPrimaryKey(String name, int year) {
+            try {
+                album.pkName = name.trim();
+            } catch (NullPointerException e) {
+                album.pkName = "";
+            }
+            album.pkYear = year;
+            return this;
+        }
 
         public Builder setName(String name) {
             try {
@@ -68,6 +81,12 @@ public class MusicAlbum {
         }
 
         public MusicAlbum create() {
+            if (album.pkName.isEmpty()) {
+                album.pkName = album.name;
+            }
+            if (album.pkYear <= 0) {
+                album.pkYear = album.year;
+            }
             return album;
         }
     }
@@ -90,6 +109,18 @@ public class MusicAlbum {
 
     public ArrayList<MusicTrack> getMusicTracks() {
         return tracks;
+    }
+
+    public String getPrimaryKeyName() {
+        return pkName;
+    }
+
+    public int getPrimaryKeyYear() {
+        return pkYear;
+    }
+
+    public boolean needsReinsert() {
+        return !pkName.equals(name) || pkYear != year;
     }
 
 }

@@ -7,6 +7,8 @@ import static com.hl.record.movie.MovieCrew.DIRECTOR;
 import static com.hl.record.movie.MovieCrew.EDITOR;
 import static com.hl.record.movie.MovieCrew.PRODUCER;
 import static com.hl.record.movie.MovieCrew.SCRIPTWRITER;
+import static com.hl.record.Person.FEMALE;
+import static com.hl.record.Person.MALE;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -24,21 +26,15 @@ import com.hl.record.music.MusicTrack;
 
 public class InsertTest {
 
-    public static void main(String[] args) throws DatabaseInsertException, SQLException, NameFormatException {
+    public static void main(String[] args) throws Exception {
         Connection connection = DatabaseDriver.connectToDatabase();
-
-        // add roles
-        for (String role : MovieCrew.ROLES) {
-            DatabaseInserter.insertMovieRole(connection, role);
-        }
-
         insertBooks(connection);
         insertMusic(connection);
         insertMovies(connection);
         connection.close();
     }
 
-    public static void insertBooks(Connection connection) throws DatabaseInsertException, NameFormatException {
+    public static void insertBooks(Connection connection) throws DatabaseInsertException, NameFormatException, SQLException {
         Book book = new Book.Builder() //
                 .setIsbn("9780521402309") //
                 .setTitle("The Great Gatsby") //
@@ -193,7 +189,7 @@ public class InsertTest {
         System.out.println("Book insertion complete");
     }
 
-    public static void insertMusic(Connection connection) throws DatabaseInsertException, NameFormatException {
+    public static void insertMusic(Connection connection) throws DatabaseInsertException, NameFormatException, SQLException {
         MusicAlbum album = new MusicAlbum.Builder() //
                 .setName("Songs from the Big Chair") //
                 .setYear(1985) //
@@ -280,50 +276,88 @@ public class InsertTest {
         System.out.println("Music insertion complete");
     }
 
-    public static void insertMovies(Connection connection) throws DatabaseInsertException, NameFormatException {
+    public static void insertMovies(Connection connection) throws DatabaseInsertException, NameFormatException, SQLException {
         Movie movie = new Movie.Builder() //
                 .setName("Captain Philips") //
                 .setYear(2013) //
-                .addCrewMember(MovieCrew.parseName("Paul Greengrass", DIRECTOR, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Tom Sizemore", PRODUCER, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Tom Hanks", CAST, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Christopher Rouse", EDITOR, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Henry Jackman", COMPOSER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Ken Nolan", SCRIPTWRITER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Christopher Rouse", COSTUME_DESIGNER, "Male", false)) //
+                .addCrewMember("Paul Greengrass", DIRECTOR, MALE, true) //
+                .addCrewMember("Tom Sizemore", PRODUCER, MALE, true) //
+                .addCrewMember("Tom Hanks", CAST, MALE, true) //
+                .addCrewMember("Christopher Rouse", EDITOR, MALE) //
+                .addCrewMember("Henry Jackman", COMPOSER, MALE) //
+                .addCrewMember("Ken Nolan", SCRIPTWRITER, MALE) //
+                .addCrewMember("Christopher Hanks", COSTUME_DESIGNER, MALE) //
                 .create();
         DatabaseInserter.insertMovie(connection, movie);
 
         movie = new Movie.Builder() //
                 .setName("Saving Private Ryan") //
                 .setYear(1998) //
-                .addCrewMember(MovieCrew.parseName("Steven Spielberg", DIRECTOR, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("John Williams", COMPOSER, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Ian Bryce", SCRIPTWRITER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Robert Rodat", PRODUCER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Tom Hanks", CAST, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Ken Nolan", EDITOR, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Christopher Rouse", SCRIPTWRITER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Steven Spielberg", COSTUME_DESIGNER, "Male", true)) //
+                .addCrewMember("Steven Spielberg", DIRECTOR, MALE, true) //
+                .addCrewMember("John Williams", COMPOSER, MALE, true) //
+                .addCrewMember("Ian Bryce", SCRIPTWRITER, MALE, false) //
+                .addCrewMember("Robert Rodat", PRODUCER, MALE, false) //
+                .addCrewMember("Tom Hanks", CAST, MALE, true) //
+                .addCrewMember("Ken Nolan", EDITOR, MALE, false) //
+                .addCrewMember("Christopher Rouse", SCRIPTWRITER, MALE, false) //
+                .addCrewMember("Tom Spielberg", COSTUME_DESIGNER, MALE, true) //
                 .create();
         DatabaseInserter.insertMovie(connection, movie);
 
         movie = new Movie.Builder() //
-                .setName("The Black Hawk Down") //
+                .setName("Black Hawk Down") //
                 .setYear(2003) //
-                .addCrewMember(MovieCrew.parseName("Ridley Scott", DIRECTOR, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Jerry Bruckheimer", PRODUCER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Ridley Scott", PRODUCER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Steven Spielberg", COSTUME_DESIGNER, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Ken Nolan", SCRIPTWRITER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Josh Hartnett", CAST, "Male", true)) //
-                .addCrewMember(MovieCrew.parseName("Ewan McGregor", CAST, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Tom Sizemore", CAST, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Orlando Bloom", CAST, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Tom Hardy", CAST, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Nikolaj Coster-Waldau", CAST, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Hans Zimmer", COMPOSER, "Male", false)) //
-                .addCrewMember(MovieCrew.parseName("Pietro Scalia", EDITOR, "Male", false)) //
+                .addCrewMember("Ridley Scott", DIRECTOR, MALE, true) //
+                .addCrewMember("Jerry Bruckheimer", PRODUCER, MALE, false) //
+                .addCrewMember("Josh Scotter", PRODUCER, MALE, false) //
+                .addCrewMember("Steven Spielberg", COSTUME_DESIGNER, MALE, true) //
+                .addCrewMember("Ken Nolan", SCRIPTWRITER, MALE, false) //
+                .addCrewMember("Josh Hartnett", CAST, MALE, true) //
+                .addCrewMember("Ewan McGregor", CAST, MALE, false) //
+                .addCrewMember("Tom Sizemore", CAST, MALE, false) //
+                .addCrewMember("Orlando Bloom", CAST, MALE, false) //
+                .addCrewMember("Tom Hardy", CAST, MALE, false) //
+                .addCrewMember("Nikolaj Coster-Waldau", CAST, MALE, false) //
+                .addCrewMember("Hans Zimmer", COMPOSER, MALE, false) //
+                .addCrewMember("Pietro Scalia", EDITOR, MALE, false) //
+                .create();
+        DatabaseInserter.insertMovie(connection, movie);
+
+        movie = new Movie.Builder() //
+                .setName("Aliens") //
+                .setYear(1986) //
+                .addCrewMember("James Cameron", DIRECTOR, MALE, true) //
+                .addCrewMember("Gale Anne Hurd", PRODUCER, FEMALE) //
+                .addCrewMember("Gordon Carroll", PRODUCER, MALE) //
+                .addCrewMember("David Giler", SCRIPTWRITER, MALE) //
+                .addCrewMember("Walter Hill", SCRIPTWRITER, MALE) //
+                .addCrewMember("James Hill", SCRIPTWRITER, MALE) //
+                .addCrewMember("James Horner", COMPOSER, MALE) //
+                .addCrewMember("Michael Cameron", COSTUME_DESIGNER, MALE) //
+                .addCrewMember("Ray Lovejoy", EDITOR, MALE) //
+                .addCrewMember("Sigourney Weaver", CAST, FEMALE) //
+                .addCrewMember("Michael Biehn", CAST, MALE) //
+                .addCrewMember("Paul Reiser", CAST, MALE) //
+                .addCrewMember("Lance Henriksen", CAST, MALE) //
+                .addCrewMember("Carrie Henn", CAST, FEMALE) //
+                .create();
+        DatabaseInserter.insertMovie(connection, movie);
+
+        movie = new Movie.Builder() //
+                .setName("Avatar") //
+                .setYear(2009) //
+                .addCrewMember("James Cameron", DIRECTOR, MALE) //
+                .addCrewMember("Sam Lang", PRODUCER, MALE) //
+                .addCrewMember("Jon Landau", PRODUCER, MALE) //
+                .addCrewMember("Alex Cameron", SCRIPTWRITER, MALE) //
+                .addCrewMember("James Horner", COMPOSER, MALE) //
+                .addCrewMember("Stephen Rivkin", EDITOR, MALE) //
+                .addCrewMember("Mauro Fiore", COSTUME_DESIGNER, MALE) //
+                .addCrewMember("Sam Worthington", CAST, MALE) //
+                .addCrewMember("Zoe Saldana", CAST, FEMALE) //
+                .addCrewMember("Stephen Lang", CAST, MALE) //
+                .addCrewMember("Michelle Rodriguez", CAST, MALE) //
+                .addCrewMember("Sigourney Weaver", CAST, FEMALE) //
                 .create();
         DatabaseInserter.insertMovie(connection, movie);
 

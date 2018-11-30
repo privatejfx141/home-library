@@ -101,6 +101,10 @@ public class Person {
     public String getMiddleName() {
         return middleName;
     }
+    
+    public boolean hasMiddleName() {
+        return middleName != null && !middleName.isEmpty();
+    }
 
     public String getLastName() {
         return lastName;
@@ -108,7 +112,7 @@ public class Person {
 
     public String getName() {
         String name = firstName;
-        if (!middleName.isEmpty()) {
+        if (hasMiddleName()) {
             name += " " + middleName;
         }
         name += " " + lastName;
@@ -117,6 +121,10 @@ public class Person {
 
     public String getGender() {
         return gender;
+    }
+    
+    public boolean hasGender() {
+        return gender != null && !gender.isEmpty();
     }
 
     public boolean compare(Person other) {

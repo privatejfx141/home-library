@@ -12,8 +12,21 @@ public class Movie {
     private int year = -1;
     private ArrayList<MovieCrew> crewMembers;
 
+    private String pkName = "";
+    private int pkYear = 0;
+
     public static class Builder {
         private Movie movie = new Movie();
+
+        public Builder setPrimaryKey(String name, int year) {
+            try {
+                movie.pkName = name.trim();
+            } catch (NullPointerException e) {
+                movie.pkName = "";
+            }
+            movie.pkYear = year;
+            return this;
+        }
 
         public Builder setName(String name) {
             try {
@@ -44,12 +57,27 @@ public class Movie {
             return this;
         }
 
+        public Builder addCrewMember(String name, String role, String gender) {
+            return addCrewMember(name, role, gender, false);
+        }
+
+        public Builder addCrewMember(String name, String role, String gender, boolean award) {
+            movie.crewMembers.add(MovieCrew.parseName(name, role, gender, award));
+            return this;
+        }
+
         public Builder addCrewMembers(Collection<MovieCrew> members) {
             movie.crewMembers.addAll(members);
             return this;
         }
 
         public Movie create() {
+            if (movie.pkName.isEmpty()) {
+                movie.pkName = movie.name;
+            }
+            if (movie.pkYear <= 0) {
+                movie.pkYear = movie.year;
+            }
             return movie;
         }
     }
@@ -70,4 +98,16 @@ public class Movie {
         return crewMembers;
     }
 
+    public String getPrimaryKeyName() {
+        return pkName;
+    }
+
+    public int getPrimaryKeyYear() {
+        return pkYear;
+    }
+
+    public boolean needsReinsert() {
+        return !pkName.equals(name) || pkYear != year;
+    }
+    
 }

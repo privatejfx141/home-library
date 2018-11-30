@@ -12,17 +12,16 @@ import javax.swing.border.EmptyBorder;
 
 import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
+import com.hl.database.DatabaseUpdater;
 import com.hl.exceptions.DatabaseInsertException;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.movie.Movie;
 import com.hl.record.movie.MovieCrew;
-import com.hl.record.music.MusicTrack;
 
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
@@ -30,6 +29,7 @@ import javax.swing.JList;
 import java.awt.Color;
 import javax.swing.JScrollPane;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.awt.event.ActionListener;
@@ -63,6 +63,9 @@ public class MovieDialog extends HomeLibraryProductDialog {
      */
     private HashMap<String, HashMap<String, MovieCrew>> crewMap = new HashMap<>();
     private Movie movie;
+
+    private String oldMovieName = "";
+    private int oldMovieYear = 0;
 
     private MouseAdapter listMouseAdapter = new MouseAdapter() {
         @Override
@@ -98,6 +101,9 @@ public class MovieDialog extends HomeLibraryProductDialog {
     public MovieDialog(Frame parent, Movie data) {
         super(parent, data);
         initialize();
+        if (isUpdating = data != null) {
+            populateFields(data);
+        }
         setVisible(true);
     }
 
@@ -105,22 +111,23 @@ public class MovieDialog extends HomeLibraryProductDialog {
         createGUI();
         addMandatoryField(nameField);
         addMandatoryField(yearField);
+        // create map from descriptor to list
         crewLists.put(MovieCrew.CAST, castList);
+        crewLists.put(MovieCrew.COMPOSER, composerList);
+        crewLists.put(MovieCrew.COSTUME_DESIGNER, designerList);
         crewLists.put(MovieCrew.DIRECTOR, directorList);
+        crewLists.put(MovieCrew.EDITOR, editorList);
         crewLists.put(MovieCrew.PRODUCER, producerList);
         crewLists.put(MovieCrew.SCRIPTWRITER, scriptwriterList);
-        crewLists.put(MovieCrew.COMPOSER, composerList);
-        crewLists.put(MovieCrew.EDITOR, editorList);
-        crewLists.put(MovieCrew.COSTUME_DESIGNER, designerList);
-
+        // create map from list to descriptor
         listToDescriptor.put(castList, MovieCrew.CAST);
+        listToDescriptor.put(composerList, MovieCrew.COMPOSER);
+        listToDescriptor.put(designerList, MovieCrew.COSTUME_DESIGNER);
         listToDescriptor.put(directorList, MovieCrew.DIRECTOR);
+        listToDescriptor.put(editorList, MovieCrew.EDITOR);
         listToDescriptor.put(producerList, MovieCrew.PRODUCER);
         listToDescriptor.put(scriptwriterList, MovieCrew.SCRIPTWRITER);
-        listToDescriptor.put(composerList, MovieCrew.COMPOSER);
-        listToDescriptor.put(editorList, MovieCrew.EDITOR);
-        listToDescriptor.put(designerList, MovieCrew.COSTUME_DESIGNER);
-
+        // initialize crew member map
         for (String roleDescriptor : MovieCrew.ROLES) {
             crewMap.put(roleDescriptor, new HashMap<String, MovieCrew>());
         }
@@ -151,7 +158,21 @@ public class MovieDialog extends HomeLibraryProductDialog {
     }
 
     private void handleSubmit() {
-
+        movie = parseFields();
+        if (movie == null) {
+            return;
+        }
+        if (isUpdating) {
+            if (updateToDatabase(movie)) {
+                System.out.println("Movie dialog: updated to DB.");
+                dispose();
+            }
+        } else {
+            if (insertToDatabase(movie)) {
+                System.out.println("Movie dialog: inserted to DB.");
+                dispose();
+            }
+        }
     }
 
     private void addCrewMember(MovieCrew crew) {
@@ -162,22 +183,24 @@ public class MovieDialog extends HomeLibraryProductDialog {
         // add to JLists
         DefaultListModel<String> model = (DefaultListModel<String>) crewLists.get(role).getModel();
         model.addElement(key);
+        System.out.println("Movie dialog: " + key + " [" + role + "] added.");
     }
 
     private void removeCrewMember(MovieCrew crew) {
         String role = crew.getRole();
-        String key = crew.getName();
+        String key = crew.toString();
         // remove from crew map
         crewMap.get(role).remove(key);
         // remove from JLists
         DefaultListModel<String> model = (DefaultListModel<String>) crewLists.get(role).getModel();
         model.removeElement(key);
+        System.out.println("Movie dialog: " + key + " [" + role + "] removed.");
     }
 
     @Override
     public void createGUI() {
         setResizable(false);
-        setBounds(100, 100, 450, 750);
+        setBounds(100, 100, 450, 780);
         getContentPane().setLayout(new BorderLayout());
         contentPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
         getContentPane().add(contentPanel, BorderLayout.NORTH);
@@ -332,6 +355,8 @@ public class MovieDialog extends HomeLibraryProductDialog {
         gbc_castLabel.gridy = 8;
         contentPanel.add(castLabel, gbc_castLabel);
 
+        castList = new JList<String>(new DefaultListModel<String>());
+        castList.addMouseListener(listMouseAdapter);
         JScrollPane castScrollPane = new JScrollPane();
         GridBagConstraints gbc_castScrollPane = new GridBagConstraints();
         gbc_castScrollPane.fill = GridBagConstraints.BOTH;
@@ -339,8 +364,6 @@ public class MovieDialog extends HomeLibraryProductDialog {
         gbc_castScrollPane.gridx = 1;
         gbc_castScrollPane.gridy = 8;
         contentPanel.add(castScrollPane, gbc_castScrollPane);
-        castList = new JList<String>(new DefaultListModel<String>());
-        crewLists.put("Cast", castList);
         castScrollPane.setViewportView(castList);
 
         JLabel yearLabel = new JLabel("Year of release");
@@ -394,13 +417,29 @@ public class MovieDialog extends HomeLibraryProductDialog {
     @Override
     public void populateFields(Object data) {
         Movie movie = (Movie) data;
-        nameField.setText(movie.getName());
-        yearField.setText(Integer.toString(movie.getYear()));
+        oldMovieName = movie.getName();
+        oldMovieYear = movie.getYear();
+        // populate text fields
+        nameField.setText(oldMovieName);
+        yearField.setText(Integer.toString(oldMovieYear));
+        // populate lists with crew members
+        for (MovieCrew member : movie.getCrewMembers()) {
+            addCrewMember(member);
+        }
     }
 
     @Override
     public Movie parseFields() {
         if (checkMandatoryFields()) {
+            // check if any crew members were added for each role
+            for (String role : crewMap.keySet()) {
+                HashMap<String, MovieCrew> selectCrewMap = crewMap.get(role);
+                if (selectCrewMap == null || selectCrewMap.size() == 0) {
+                    String error = "At least one member of role " + role + " must be addded.";
+                    HomeLibrary.showSubmitErrorMessageBox(this, error);
+                    return null;
+                }
+            }
             // combine all crew members
             ArrayList<MovieCrew> allMembers = new ArrayList<>();
             for (HashMap<String, MovieCrew> members : crewMap.values()) {
@@ -408,6 +447,7 @@ public class MovieDialog extends HomeLibraryProductDialog {
             }
             try {
                 Movie movie = new Movie.Builder() //
+                        .setPrimaryKey(oldMovieName, oldMovieYear) //
                         .setName(nameField.getText()) //
                         .setYear(yearField.getText()) //
                         .addCrewMembers(allMembers) //
@@ -433,17 +473,35 @@ public class MovieDialog extends HomeLibraryProductDialog {
             DatabaseInserter.insertMovie(connection, movie);
             HomeLibrary.showSubmitMessageBox(this, HomeLibrary.INSERT_DB_SUCCESS_MSG);
             return true;
-        } catch (DatabaseInsertException e) {
+        } catch (SQLException e) {
             HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             e.printStackTrace();
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return false;
     }
 
     @Override
     public boolean updateToDatabase(Object data) {
-        // TODO Auto-generated method stub
-        return false;
+        boolean success = false;
+        Movie movie = (Movie) data;
+        Connection connection = DatabaseDriver.connectToDatabase();
+        if (success = DatabaseUpdater.updateMovie(connection, movie)) {
+            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
+        } else {
+            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
+        }
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return success;
     }
 
 }

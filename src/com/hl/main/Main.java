@@ -1,10 +1,13 @@
 package com.hl.main;
 
+import com.hl.database.DatabaseDriver;
+import com.hl.gui.HomeLibrary;
+
 public class Main {
 
     public static void main(String[] args) {
-        // TODO Auto-generated method stub
-
+        DatabaseDriver.initializeDatabase();
+        new HomeLibrary();
     }
 
 }

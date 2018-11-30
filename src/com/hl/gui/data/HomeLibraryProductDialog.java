@@ -2,7 +2,6 @@ package com.hl.gui.data;
 
 import java.awt.Dialog;
 import java.awt.Frame;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -14,6 +13,8 @@ import com.hl.gui.HomeLibrary;
 
 public abstract class HomeLibraryProductDialog extends JDialog implements ProductDialog {
 
+    protected boolean isUpdating = false;
+    
     /**
      * Generated serial version UID.
      */

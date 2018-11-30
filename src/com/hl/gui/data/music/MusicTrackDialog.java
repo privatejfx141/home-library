@@ -266,8 +266,19 @@ public class MusicTrackDialog extends HomeLibraryProductDialog {
     public MusicTrack parseFields() {
         if (checkMandatoryFields()) {
             try {
+                String trackName = nameField.getText();
+                // check if track was already added
+                for (MusicTrack addedTrack : addedTracks) {
+                    String addTrackName = addedTrack.getName();
+                    if (trackName.equalsIgnoreCase(addTrackName)) {
+                        String error = "Track already exists.";
+                        HomeLibrary.showSubmitErrorMessageBox(this, error);
+                        return null;
+                    }
+                }
+                // build music track data object
                 MusicTrack track = new MusicTrack.Builder() //
-                        .setName(nameField.getText()) //
+                        .setName(trackName) //
                         .setLanguage(languageField.getText()) //
                         .addSinger(singer1Field.getText()) //
                         .addSinger(singer2Field.getText()) //
@@ -289,17 +300,7 @@ public class MusicTrackDialog extends HomeLibraryProductDialog {
         if (track == null) {
             return;
         } else {
-            // check if track was already added
-            String trackName = track.getName();
-            for (MusicTrack addedTrack : addedTracks) {
-                String addTrackName = addedTrack.getName();
-                if (trackName.equalsIgnoreCase(addTrackName)) {
-                    String error = "Track already exists.";
-                    HomeLibrary.showSubmitErrorMessageBox(this, error);
-                    return;
-                }
-            }
-            System.out.println("Track dialog: " + trackName + " submitted.");
+            System.out.println("Track dialog: " + track.getName() + " submitted.");
             dispose();
         }
     }

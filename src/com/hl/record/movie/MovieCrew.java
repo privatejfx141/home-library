@@ -1,38 +1,20 @@
 package com.hl.record.movie;
 
-import com.hl.generics.MovieRoles;
+import com.hl.generics.Roles;
 import com.hl.record.Person;
 
 public class MovieCrew extends Person {
 
-    public static final String DIRECTOR = MovieRoles.D.toString();
-    public static final String SCRIPTWRITER = MovieRoles.S.toString();
-    public static final String CAST = MovieRoles.C.toString();
-    public static final String PRODUCER = MovieRoles.P.toString();
-    public static final String COMPOSER = MovieRoles.CO.toString();
-    public static final String EDITOR = MovieRoles.E.toString();
-    public static final String COSTUME_DESIGNER = MovieRoles.CD.toString();
-    public static final String[] ROLES = new String[] { DIRECTOR, SCRIPTWRITER, CAST, PRODUCER, COMPOSER, EDITOR,
-            COSTUME_DESIGNER };
+    public static final String CAST = Roles.CAST.toString();
+    public static final String COMPOSER = Roles.COMPOSER.toString();
+    public static final String COSTUME_DESIGNER = Roles.COSTUME_DESIGNER.toString();
+    public static final String DIRECTOR = Roles.DIRECTOR.toString();
+    public static final String EDITOR = Roles.MOVIE_EDITOR.toString();
+    public static final String PRODUCER = Roles.MOVIE_PRODUCER.toString();
+    public static final String SCRIPTWRITER = Roles.SCRIPTWRITER.toString();
 
-    public static String getRoleDescriptor(String role) {
-        if (role.equalsIgnoreCase("Director")) {
-            return DIRECTOR;
-        } else if (role.equalsIgnoreCase("Script writer")) {
-            return SCRIPTWRITER;
-        } else if (role.equalsIgnoreCase("Cast")) {
-            return CAST;
-        } else if (role.equalsIgnoreCase("Producer")) {
-            return PRODUCER;
-        } else if (role.equalsIgnoreCase("Composer")) {
-            return COMPOSER;
-        } else if (role.equalsIgnoreCase("Editor")) {
-            return EDITOR;
-        } else if (role.equalsIgnoreCase("Costume designer")) {
-            return COSTUME_DESIGNER;
-        }
-        return null;
-    }
+    public static final String[] ROLES = new String[] { CAST, COMPOSER, COSTUME_DESIGNER, DIRECTOR, EDITOR, PRODUCER,
+            SCRIPTWRITER };
 
     public static MovieCrew parseName(String name, String role, String gender, boolean award) {
         MovieCrew member = new MovieCrew();
