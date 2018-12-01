@@ -14,6 +14,7 @@ import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
 import com.hl.database.DatabaseUpdater;
 import com.hl.exceptions.DatabaseInsertException;
+import com.hl.exceptions.DatabaseUpdateException;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.Person;
@@ -476,9 +477,9 @@ public class BookDialog extends HomeLibraryProductDialog {
             } else {
                 HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             }
-        } catch (Exception e) {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
-            e.printStackTrace();
+        } catch (DatabaseInsertException e) {
+            String error = HomeLibrary.INSERT_DB_FAILURE_MSG + "\n" + e.getMessage();
+            HomeLibrary.showSubmitErrorMessageBox(this, error);
         } finally {
             try {
                 connection.close();
@@ -494,15 +495,21 @@ public class BookDialog extends HomeLibraryProductDialog {
         boolean success = false;
         Book book = (Book) data;
         Connection connection = DatabaseDriver.connectToDatabase();
-        if (success = DatabaseUpdater.updateBook(connection, book)) {
-            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
-        } else {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
-        }
         try {
-            connection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            if (success = DatabaseUpdater.updateBook(connection, book)) {
+                HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
+            } else {
+                HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
+            }
+        } catch (DatabaseUpdateException e) {
+            String error = HomeLibrary.UPDATE_DB_FAILURE_MSG + "\n" + e.getMessage();
+            HomeLibrary.showSubmitErrorMessageBox(this, error);
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return success;
     }

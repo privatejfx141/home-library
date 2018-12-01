@@ -13,6 +13,8 @@ import javax.swing.border.EmptyBorder;
 import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
 import com.hl.database.DatabaseUpdater;
+import com.hl.exceptions.DatabaseInsertException;
+import com.hl.exceptions.DatabaseUpdateException;
 import com.hl.exceptions.NameFormatException;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
@@ -357,9 +359,9 @@ public class MusicDialog extends HomeLibraryProductDialog {
             } else {
                 HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
             }
-        } catch (SQLException e) {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
-            e.printStackTrace();
+        } catch (DatabaseInsertException e) {
+            String error = HomeLibrary.INSERT_DB_FAILURE_MSG + "\n" + e.getMessage();
+            HomeLibrary.showSubmitErrorMessageBox(this, error);
         } finally {
             try {
                 connection.close();
@@ -375,15 +377,21 @@ public class MusicDialog extends HomeLibraryProductDialog {
         boolean result = false;
         MusicAlbum album = (MusicAlbum) data;
         Connection connection = DatabaseDriver.connectToDatabase();
-        if (result = DatabaseUpdater.updateMusicAlbum(connection, album)) {
-            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
-        } else {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
-        }
         try {
-            connection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            if (result = DatabaseUpdater.updateMusicAlbum(connection, album)) {
+                HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
+            } else {
+                HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
+            }
+        } catch (DatabaseUpdateException e) {
+            String error = HomeLibrary.UPDATE_DB_FAILURE_MSG + "\n" + e.getMessage();
+            HomeLibrary.showSubmitErrorMessageBox(this, error);
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return result;
     }

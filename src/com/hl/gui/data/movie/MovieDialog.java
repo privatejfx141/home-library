@@ -14,6 +14,7 @@ import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseInserter;
 import com.hl.database.DatabaseUpdater;
 import com.hl.exceptions.DatabaseInsertException;
+import com.hl.exceptions.DatabaseUpdateException;
 import com.hl.gui.HomeLibrary;
 import com.hl.gui.data.HomeLibraryProductDialog;
 import com.hl.record.movie.Movie;
@@ -435,7 +436,7 @@ public class MovieDialog extends HomeLibraryProductDialog {
             for (String role : crewMap.keySet()) {
                 HashMap<String, MovieCrew> selectCrewMap = crewMap.get(role);
                 if (selectCrewMap == null || selectCrewMap.size() == 0) {
-                    String error = "At least one member of role " + role + " must be addded.";
+                    String error = "At least one member of role " + role + " must be added.";
                     HomeLibrary.showSubmitErrorMessageBox(this, error);
                     return null;
                 }
@@ -473,9 +474,9 @@ public class MovieDialog extends HomeLibraryProductDialog {
             DatabaseInserter.insertMovie(connection, movie);
             HomeLibrary.showSubmitMessageBox(this, HomeLibrary.INSERT_DB_SUCCESS_MSG);
             return true;
-        } catch (SQLException e) {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.INSERT_DB_FAILURE_MSG);
-            e.printStackTrace();
+        } catch (DatabaseInsertException e) {
+            String error = HomeLibrary.INSERT_DB_FAILURE_MSG + "\n" + e.getMessage();
+            HomeLibrary.showSubmitErrorMessageBox(this, error);
         } finally {
             try {
                 connection.close();
@@ -491,15 +492,21 @@ public class MovieDialog extends HomeLibraryProductDialog {
         boolean success = false;
         Movie movie = (Movie) data;
         Connection connection = DatabaseDriver.connectToDatabase();
-        if (success = DatabaseUpdater.updateMovie(connection, movie)) {
-            HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
-        } else {
-            HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
-        }
         try {
-            connection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            if (success = DatabaseUpdater.updateMovie(connection, movie)) {
+                HomeLibrary.showSubmitMessageBox(this, HomeLibrary.UPDATE_DB_SUCCESS_MSG);
+            } else {
+                HomeLibrary.showSubmitErrorMessageBox(this, HomeLibrary.UPDATE_DB_FAILURE_MSG);
+            }
+        } catch (DatabaseUpdateException e) {
+            String error = HomeLibrary.UPDATE_DB_FAILURE_MSG + "\n" + e.getMessage();
+            HomeLibrary.showSubmitErrorMessageBox(this, error);
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return success;
     }

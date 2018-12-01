@@ -9,6 +9,8 @@ import com.hl.generics.Roles;
 
 public class DatabaseDriver {
 
+    public static final boolean INSERT_ROLES_ON_INITIALIZE = false;
+
     public static void main(String[] args) {
         initializeDatabase();
     }
@@ -28,6 +30,10 @@ public class DatabaseDriver {
         return connection;
     }
 
+    /**
+     * Connects to the HL database and inserts all possible people involved roles to
+     * the Role table.
+     */
     public static void addRoles() {
         Connection connection = connectToDatabase();
         try {
@@ -54,6 +60,11 @@ public class DatabaseDriver {
         }
     }
 
+    /**
+     * Initializes the database by creating the necessary indices, functions, and
+     * views and inserting data before the Home Library application can be
+     * appropriately used.
+     */
     public static void initializeDatabase() {
         Connection connection = connectToDatabase();
         try {
@@ -64,8 +75,10 @@ public class DatabaseDriver {
             statement.execute();
 
             // insert all possible crew roles
-            for (Roles role : Roles.values()) {
-                DatabaseInserter.insertRole(connection, role.toString());
+            if (INSERT_ROLES_ON_INITIALIZE) {
+                for (Roles role : Roles.values()) {
+                    DatabaseInserter.insertRole(connection, role.toString());
+                }
             }
 
             /* create stored procedures and functions */
@@ -77,33 +90,24 @@ public class DatabaseDriver {
             sql = "DROP FUNCTION IF EXISTS FullName";
             statement = connection.prepareStatement(sql);
             statement.execute();
-
             sql = "CREATE FUNCTION FullName(PeopleInvolved_ID INT) RETURNS VARCHAR(135) " //
-                    + "BEGIN " //
-                    + "DECLARE fullName VARCHAR(135); " //
-                    + "SET fullName = (SELECT CONCAT(FirstName, ' ', IF(ISNULL(MiddleName), '', CONCAT(MiddleName, ' ')), " //
-                    + "FamilyName) FROM PeopleInvolved WHERE ID = PeopleInvolved_ID); " //
-                    + "RETURN fullName; " //
-                    + "END";
+                    + "BEGIN DECLARE fullName VARCHAR(135); " //
+                    + "SET fullName = (SELECT CONCAT(FirstName, ' ', IF(ISNULL(MiddleName), "
+                    + "'', CONCAT(MiddleName, ' ')), FamilyName) " //
+                    + "FROM PeopleInvolved WHERE ID = PeopleInvolved_ID); " //
+                    + "RETURN fullName; END";
             statement = connection.prepareStatement(sql);
             statement.execute();
 
-            sql = "DROP FUNCTION IF EXISTS MovieRole";
+            sql = "DROP FUNCTION IF EXISTS ReverseFullName";
             statement = connection.prepareStatement(sql);
             statement.execute();
-
-            sql = "CREATE FUNCTION MovieRole(roleCode VARCHAR(4)) RETURNS VARCHAR(32) " //
-                    + "BEGIN " //
-                    + "DECLARE roleName VARCHAR(32); " //
-                    + "SET roleName = (CASE WHEN roleCode = 'C' THEN 'Cast' "//
-                    + "WHEN roleCode = 'D' THEN 'Director' " //
-                    + "WHEN roleCode = 'P' THEN 'Producer' " //
-                    + "WHEN roleCode = 'S' THEN 'Script writer' " //
-                    + "WHEN roleCode = 'E' THEN 'Editor' " //
-                    + "WHEN roleCode = 'CO' THEN 'Composer' " //
-                    + "WHEN roleCode = 'CD' THEN 'Costume designer' END); " //
-                    + "RETURN roleName; " //
-                    + "END";
+            sql = "CREATE FUNCTION ReverseFullName(PeopleInvolved_ID INT) RETURNS VARCHAR(135) " //
+                    + "BEGIN DECLARE fullName VARCHAR(135); " //
+                    + "SET fullName = (SELECT CONCAT(FamilyName, ', ', FirstName, " //
+                    + "IF(ISNULL(MiddleName), '', CONCAT(' ', MiddleName))) " //
+                    + "FROM PeopleInvolved WHERE ID = PeopleInvolved_ID); " //
+                    + "RETURN fullName; END";
             statement = connection.prepareStatement(sql);
             statement.execute();
 
@@ -164,7 +168,7 @@ public class DatabaseDriver {
 
             sql = "CREATE VIEW Directors AS SELECT pi.ID, pi.FamilyName, cm.MovieName FROM PeopleInvolved pi "
                     + "INNER JOIN CrewMember cm ON (pi.ID = cm.PeopleInvolved_ID) "
-                    + "INNER JOIN Role r ON (cm.Role_ID = r.ID) WHERE r.Description = 'D'";
+                    + "INNER JOIN Role r ON (cm.Role_ID = r.ID) WHERE r.Description = 'Director'";
             statement = connection.prepareStatement(sql);
             statement.execute();
 
@@ -186,13 +190,13 @@ public class DatabaseDriver {
             sql = "CREATE VIEW MusicFamilyNames AS SELECT pi.FamilyName, 'Songwriter' AS Role FROM PeopleInvolved pi "
                     + "JOIN (SELECT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE isSongwriter) pim "
                     + "ON (pi.ID = pim.PeopleInvolved_ID) GROUP BY pi.FirstName, pi.FamilyName "
-                    + "UNION ALL SELECT pi.FamilyName, 'Composer' AS Role FROM PeopleInvolved pi "
+                    + "UNION SELECT pi.FamilyName, 'Composer' AS Role FROM PeopleInvolved pi "
                     + "JOIN (SELECT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE isComposer) pim "
                     + "ON (pi.ID = pim.PeopleInvolved_ID) GROUP BY pi.FirstName, pi.FamilyName "
-                    + "UNION ALL SELECT pi.FamilyName, 'Arranger' AS Role FROM PeopleInvolved pi "
+                    + "UNION SELECT pi.FamilyName, 'Arranger' AS Role FROM PeopleInvolved pi "
                     + "JOIN (SELECT PeopleInvolved_ID FROM PeopleInvolvedMusic WHERE isArranger) pim "
                     + "ON (pi.ID = pim.PeopleInvolved_ID) GROUP BY pi.FirstName, pi.FamilyName "
-                    + "UNION ALL SELECT pi.FamilyName, 'Singer' AS Role FROM PeopleInvolved pi "
+                    + "UNION SELECT pi.FamilyName, 'Singer' AS Role FROM PeopleInvolved pi "
                     + "JOIN MusicSinger ms ON (pi.ID = ms.PeopleInvolved_ID) GROUP BY pi.FirstName, pi.FamilyName";
             statement = connection.prepareStatement(sql);
             statement.execute();
@@ -212,7 +216,7 @@ public class DatabaseDriver {
             statement.execute();
 
             sql = "CREATE VIEW AllFamilyNames AS SELECT * FROM BookFamilyNames "
-                    + "UNION ALL SELECT * FROM MusicFamilyNames UNION ALL SELECT * FROM MovieFamilyNames";
+                    + "UNION SELECT * FROM MusicFamilyNames UNION SELECT * FROM MovieFamilyNames";
             statement = connection.prepareStatement(sql);
             statement.execute();
 

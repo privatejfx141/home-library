@@ -5,6 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.hl.exceptions.DatabaseDeleteException;
+import com.hl.exceptions.DatabaseInsertException;
+import com.hl.exceptions.DatabaseUpdateException;
 import com.hl.record.Person;
 import com.hl.record.book.Book;
 import com.hl.record.movie.Movie;
@@ -35,17 +38,26 @@ public class DatabaseUpdater {
         return true;
     }
 
-    public static boolean updateBook(Connection connection, Book book) {
-        boolean success = false;
+    /**
+     * Updates the given book and returns <code>true</code> upon a successful update.
+     * 
+     * @param connection Connection to the HL database.
+     * @param book Book data to update record with.
+     * @return <code>true</code> if update is successful.
+     * @throws DatabaseUpdateException On error with updating.
+     */
+    public static boolean updateBook(Connection connection, Book book) throws DatabaseUpdateException {
+        String exceptionMessage = "";
         try {
             connection.setAutoCommit(false);
             updateBookDetails(connection, book);
             updateBookAuthors(connection, book);
             updateBookKeywords(connection, book);
             connection.commit();
-            success = true;
+            connection.setAutoCommit(true);
+            return true;
         } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
@@ -58,7 +70,7 @@ public class DatabaseUpdater {
                 sqle.printStackTrace();
             }
         }
-        return success;
+        throw new DatabaseUpdateException(exceptionMessage);
     }
 
     protected static boolean updateBookDetails(Connection connection, Book book) throws SQLException {
@@ -139,20 +151,28 @@ public class DatabaseUpdater {
         return true;
     }
 
-    public static boolean updateMusicAlbum(Connection connection, MusicAlbum album) {
-        boolean success = false;
+    /**
+     * Updates the given music album and returns <code>true</code> upon a successful update.
+     * 
+     * @param connection Connection to the HL database.
+     * @param album Music album data to update record with.
+     * @return <code>true</code> if update is successful.
+     * @throws DatabaseUpdateException On error with updating.
+     */
+    public static boolean updateMusicAlbum(Connection connection, MusicAlbum album) throws DatabaseUpdateException {
+        String exceptionMessage = "";
         try {
             connection.setAutoCommit(false);
             String oldAlbumName = album.getPrimaryKeyName();
             int oldAlbumYear = album.getPrimaryKeyYear();
-            DatabaseDeleter.deleteMusicAlbum(connection, oldAlbumName, oldAlbumYear);
-            DatabaseInserter.insertMusicAlbum(connection, album);
-            connection.setAutoCommit(false);
+            DatabaseDeleter.deleteMusicAlbum(connection, oldAlbumName, oldAlbumYear, false);
+            DatabaseInserter.insertMusicAlbum(connection, album, false);
             DatabaseUpdater.updateMusicCrewMembers(connection, album);
-            success = true;
             connection.commit();
-        } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            connection.setAutoCommit(true);
+            return true;
+        } catch (SQLException | DatabaseDeleteException | DatabaseInsertException e) {
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
@@ -165,7 +185,7 @@ public class DatabaseUpdater {
                 sqle.printStackTrace();
             }
         }
-        return success;
+        throw new DatabaseUpdateException(exceptionMessage);
     }
 
     protected static boolean updateMusicTrack(Connection connection, String albumName, int year, MusicTrack track)
@@ -270,27 +290,35 @@ public class DatabaseUpdater {
         return true;
     }
 
-    public static boolean updateMovie(Connection connection, Movie movie) {
-        boolean success = false;
+    /**
+     * Updates the given movie and returns <code>true</code> upon a successful update.
+     * 
+     * @param connection Connection to the HL database.
+     * @param movie Movie data to update record with.
+     * @return <code>true</code> if update is successful.
+     * @throws DatabaseUpdateException On error with updating.
+     */
+    public static boolean updateMovie(Connection connection, Movie movie) throws DatabaseUpdateException {
+        String exceptionMessage = "";
         try {
             connection.setAutoCommit(false);
             if (movie.needsReinsert()) {
                 String oldMovieName = movie.getPrimaryKeyName();
                 int oldMovieYear = movie.getPrimaryKeyYear();
-                DatabaseDeleter.deleteMovie(connection, oldMovieName, oldMovieYear);
-                DatabaseInserter.insertMovie(connection, movie);
+                DatabaseDeleter.deleteMovie(connection, oldMovieName, oldMovieYear, false);
+                DatabaseInserter.insertMovie(connection, movie, false);
             }
-            connection.setAutoCommit(false);
-            success = updateMovieCrewMembers(connection, movie);
+            updateMovieCrewMembers(connection, movie);
             connection.commit();
-        } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            connection.setAutoCommit(true);
+            return true;
+        } catch (SQLException | DatabaseDeleteException | DatabaseInsertException e) {
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
-            success = false;
         } finally {
             try {
                 connection.setAutoCommit(true);
@@ -298,7 +326,7 @@ public class DatabaseUpdater {
                 sqle.printStackTrace();
             }
         }
-        return success;
+        throw new DatabaseUpdateException(exceptionMessage);
     }
 
     protected static boolean updateMovieCrewMembers(Connection connection, Movie movie) throws SQLException {

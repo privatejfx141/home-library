@@ -10,27 +10,13 @@ import com.hl.record.Person;
 
 public class DatabaseQueryReport {
 
-    public static boolean createReport5View(Connection connection) {
-        String sql = "CREATE VIEW `TagFrequency` AS " + "SELECT kw.Tag, COUNT(ISBN) AS Frequency FROM BookKeyword bk "
-                + "INNER JOIN Keyword kw ON (bk.Keyword_ID = kw.ID) "
-                + "GROUP BY bk.Keyword_ID ORDER BY Frequency DESC";
-        try {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.executeUpdate();
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     /**
      * Queries for report 1: Authors' Publications.
      * 
-     * @param connection connection to HL database
-     * @param authorName author's name
-     * @return result set for report 1
-     * @throws NameFormatException
+     * @param connection connection to HL database.
+     * @param authorName author's name.
+     * @return result set for report 1.
+     * @throws NameFormatException On error with parsing a person's full name.
      */
     public static ResultSet queryReport1(Connection connection, String authorName) throws NameFormatException {
         ResultSet results = null;
@@ -146,7 +132,7 @@ public class DatabaseQueryReport {
      */
     public static ResultSet queryReport6(Connection connection) {
         ResultSet results = null;
-        String sql = "SELECT pi.FamilyName, MovieRole(r.Description) AS `Role`, cw.MovieName "
+        String sql = "SELECT pi.FamilyName, r.Description AS `Role`, cw.MovieName "
                 + "FROM PeopleInvolved pi JOIN MultiSkillsMovieRoleCount rc ON (pi.ID = rc.PeopleInvolved_ID) "
                 + "JOIN CrewMember cw ON (pi.ID = cw.PeopleInvolved_ID) "
                 + "JOIN Role r ON (r.ID = cw.Role_ID) ORDER BY pi.FamilyName";

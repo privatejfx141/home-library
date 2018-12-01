@@ -47,8 +47,10 @@ public class DatabaseInserter {
      * @param connection Connection to the HL database.
      * @param book       Book data to insert.
      * @return Book ISBN on successful insert, <code>null</code> otherwise.
+     * @throws DatabaseInsertException
      */
-    public static String insertBook(Connection connection, Book book) throws SQLException {
+    public static String insertBook(Connection connection, Book book) throws DatabaseInsertException {
+        String exceptionMessage = "";
         String recordId = null;
         try {
             connection.setAutoCommit(false);
@@ -71,14 +73,15 @@ public class DatabaseInserter {
                 insertBookKeyword(connection, isbn, keywordId);
             }
             connection.commit();
+            connection.setAutoCommit(true);
+            return recordId;
         } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
-            recordId = null;
         } finally {
             try {
                 connection.setAutoCommit(true);
@@ -86,7 +89,7 @@ public class DatabaseInserter {
                 sqle.printStackTrace();
             }
         }
-        return recordId;
+        throw new DatabaseInsertException(exceptionMessage);
     }
 
     protected static String insertBookDetails(Connection connection, Book book) throws SQLException {
@@ -149,6 +152,10 @@ public class DatabaseInserter {
         throw new SQLException();
     }
 
+    public static int insertMusicAlbum(Connection connection, MusicAlbum album) throws DatabaseInsertException {
+        return insertMusicAlbum(connection, album, true);
+    }
+
     /**
      * Connects to the HL database and inserts the music album's details, music
      * tracks' details, and music crew data.
@@ -158,7 +165,9 @@ public class DatabaseInserter {
      * @return <code>1</code> on successful insert, <code>-1</code> otherwise.
      * @throws DatabaseInsertException
      */
-    public static int insertMusicAlbum(Connection connection, MusicAlbum album) throws SQLException {
+    public static int insertMusicAlbum(Connection connection, MusicAlbum album, boolean finalAutoCommit)
+            throws DatabaseInsertException {
+        String exceptionMessage = "";
         int recordId = -1;
         try {
             connection.setAutoCommit(false);
@@ -173,22 +182,23 @@ public class DatabaseInserter {
                 recordId = insertMusicTrack(connection, album, track, producerId);
             }
             connection.commit();
+            connection.setAutoCommit(finalAutoCommit);
+            return recordId;
         } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
-            recordId = -1;
         } finally {
             try {
-                connection.setAutoCommit(true);
+                connection.setAutoCommit(finalAutoCommit);
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
         }
-        return recordId;
+        throw new DatabaseInsertException(exceptionMessage);
     }
 
     protected static int insertMusicTrack(Connection connection, MusicAlbum album, MusicTrack track, int producerId)
@@ -294,7 +304,13 @@ public class DatabaseInserter {
         throw new SQLException();
     }
 
-    public static int insertMovie(Connection connection, Movie movie) throws SQLException {
+    public static int insertMovie(Connection connection, Movie movie) throws DatabaseInsertException {
+        return insertMovie(connection, movie, true);
+    }
+
+    public static int insertMovie(Connection connection, Movie movie, boolean finalAutoCommit)
+            throws DatabaseInsertException {
+        String exceptionMessage = "";
         int recordId = -1;
         try {
             connection.setAutoCommit(false);
@@ -304,22 +320,23 @@ public class DatabaseInserter {
                 insertMovieAward(connection, personId, movie, crew.getAward());
             }
             connection.commit();
+            connection.setAutoCommit(finalAutoCommit);
+            return recordId;
         } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
-            recordId = -1;
         } finally {
             try {
-                connection.setAutoCommit(true);
+                connection.setAutoCommit(finalAutoCommit);
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
         }
-        return recordId;
+        throw new DatabaseInsertException(exceptionMessage);
     }
 
     protected static int insertMovieDetails(Connection connection, Movie movie) throws SQLException {
@@ -358,7 +375,7 @@ public class DatabaseInserter {
     protected static int insertMovieCrewDetails(Connection connection, Movie movie, int personId, MovieCrew crew)
             throws SQLException {
         String sql = "INSERT INTO CrewMember (PeopleInvolved_ID, MovieName, ReleaseYear, Role_ID) VALUES (?, ?, ?, ?)";
-        int roleId = DatabaseSelector.getMovieRoleId(connection, crew.getRole());
+        int roleId = DatabaseSelector.getRoleId(connection, crew.getRole());
         PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, personId);
         statement.setString(2, movie.getName());

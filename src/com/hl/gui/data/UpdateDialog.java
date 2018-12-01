@@ -23,7 +23,7 @@ public class UpdateDialog {
     public UpdateDialog(Frame parent) {
         this.parent = parent;
         String productName = promptProductName();
-        if (productName != null) {
+        if (productName != null && !productName.isEmpty()) {
             updateProduct(productName);
         }
     }

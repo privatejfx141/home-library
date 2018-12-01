@@ -1,6 +1,7 @@
 package com.hl.gui.data;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -8,6 +9,8 @@ import javax.swing.JOptionPane;
 import com.hl.database.DatabaseDeleter;
 import com.hl.database.DatabaseDriver;
 import com.hl.database.DatabaseSelector;
+import com.hl.exceptions.DatabaseDeleteException;
+import com.hl.gui.HomeLibrary;
 
 public class RemoveDialog {
 
@@ -16,7 +19,9 @@ public class RemoveDialog {
     public RemoveDialog(JFrame parentFrame) {
         this.parentFrame = parentFrame;
         String product = promptProduct();
-        deleteProductFromDatabase(product);
+        if (product != null && !product.isEmpty()) {
+            deleteProductFromDatabase(product);
+        }
     }
 
     public String promptProduct() {
@@ -38,32 +43,66 @@ public class RemoveDialog {
 
     public void deleteProductFromDatabase(String product) {
         Connection connection = DatabaseDriver.connectToDatabase();
-        String type = null;
-        // if product is book
+        // attempt to remove book
         String isbn = DatabaseSelector.getBookISBN(connection, product);
         if (isbn != null && !isbn.isEmpty()) {
-            type = "book";
-            DatabaseDeleter.deleteBook(connection, isbn);
-        } else {
-            // if product is music album
-            int year = DatabaseSelector.getMusicAlbumYear(connection, product);
-            if (year > 0) {
-                type = "music album";
-                DatabaseDeleter.deleteMusicAlbum(connection, product, year);
-            } else {
-                // if product is movie
-                year = DatabaseSelector.getMovieYear(connection, product);
-                if (year > 0) {
-                    type = "movie";
-                    DatabaseDeleter.deleteMovie(connection, product, year);
-                } else {
-                    String error = "Product with name " + product + " does not exist.";
-                    JOptionPane.showMessageDialog(parentFrame, error, "Remove Error", JOptionPane.ERROR_MESSAGE);
-                    return;
+            try {
+                DatabaseDeleter.deleteBook(connection, isbn);
+                String message = String.format(HomeLibrary.REMOVE_DB_SUCCESS_MSG, product, "book");
+                HomeLibrary.showRemoveMessageBox(parentFrame, message);
+            } catch (DatabaseDeleteException e) {
+                String error = HomeLibrary.REMOVE_DB_FAILURE_MSG + "\n" + e.getMessage();
+                HomeLibrary.showRemoveErrorMessageBox(parentFrame, error);
+            } finally {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
                 }
             }
+            return;
         }
-        String msg = "Product of type " + type + " and name " + product + " was successfully removed.";
-        JOptionPane.showMessageDialog(parentFrame, msg, "Remove Success", JOptionPane.INFORMATION_MESSAGE);
+        // attempt to remove music album
+        int year = DatabaseSelector.getMusicAlbumYear(connection, product);
+        if (year > 0) {
+            try {
+                DatabaseDeleter.deleteMusicAlbum(connection, product, year);
+                String message = String.format(HomeLibrary.REMOVE_DB_SUCCESS_MSG, product, "music album");
+                HomeLibrary.showRemoveMessageBox(parentFrame, message);
+            } catch (DatabaseDeleteException e) {
+                String error = HomeLibrary.REMOVE_DB_FAILURE_MSG + "\n" + e.getMessage();
+                HomeLibrary.showRemoveErrorMessageBox(parentFrame, error);
+            } finally {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            return;
+        }
+        // attempt to remove movie
+        year = DatabaseSelector.getMovieYear(connection, product);
+        if (year > 0) {
+            try {
+                DatabaseDeleter.deleteMovie(connection, product, year);
+                String message = String.format(HomeLibrary.REMOVE_DB_SUCCESS_MSG, product, "movie");
+                HomeLibrary.showRemoveMessageBox(parentFrame, message);
+            } catch (DatabaseDeleteException e) {
+                String error = HomeLibrary.REMOVE_DB_FAILURE_MSG + "\n" + e.getMessage();
+                HomeLibrary.showRemoveErrorMessageBox(parentFrame, error);
+            } finally {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            return;
+        }
+        // otherwise product does not exist
+        String error = "Product with name " + product + " does not exist.";
+        HomeLibrary.showRemoveErrorMessageBox(parentFrame, error);
     }
+
 }

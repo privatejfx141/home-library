@@ -14,8 +14,18 @@ import com.hl.record.movie.MovieCrew;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
-public class DatabaseSelector { 
+public class DatabaseSelector {
 
+    /**
+     * View -> Query <br/>
+     * Returns the product data (book, music album, movie) for the given product
+     * name if it exists. Otherwise, returns <code>null</code> if such product data
+     * does not exist.
+     * 
+     * @param connection  Connection to the HL database.
+     * @param productName Name of the product to search for.
+     * @return Product data if exists, <code>null</code> otherwise.
+     */
     public static Object getProduct(Connection connection, String productName) {
         // get book if exists
         String bookISBN = getBookISBN(connection, productName);
@@ -36,10 +46,14 @@ public class DatabaseSelector {
     }
 
     /**
+     * Returns the ID number of the record in the PeopleInvolved table that matches
+     * the given data. Otherwise, returns <code>-1</code> if such a record does not
+     * exist.
      * 
      * @param connection Connection to the HL database.
      * @param person     Person data to search ID for.
-     * @return
+     * @return Record ID of the person if exists in database, <code>-1</code>
+     *         otherwise.
      */
     public static int getPersonId(Connection connection, Person person) {
         int personId = -1;
@@ -59,7 +73,15 @@ public class DatabaseSelector {
         }
         return personId;
     }
-    
+
+    /**
+     * Returns <code>true</code> if the record for the person with the given ID
+     * exists in the PeopleInvolved table.
+     * 
+     * @param connection Connection to the HL database.
+     * @param personId   Person data to search ID for.
+     * @return <code>true</code> if the person exists, <code>false</code> otherwise.
+     */
     public static boolean personExists(Connection connection, int personId) {
         boolean exists = false;
         String sql = "SELECT * FROM PeopleInvolved WHERE ID = ?";
@@ -77,10 +99,12 @@ public class DatabaseSelector {
     }
 
     /**
+     * Returns ISBN of the book with the given title if it exists. Otherwise,
+     * returns <code>null</code>.
      * 
      * @param connection Connection to the HL database.
      * @param bookTitle  Title of the book.
-     * @return
+     * @return ISBN of the book, <code>null</code> otherwise.
      */
     public static String getBookISBN(Connection connection, String bookTitle) {
         String isbn = null;
@@ -99,10 +123,12 @@ public class DatabaseSelector {
     }
 
     /**
+     * Returns the ID of the record under the Keyword table with the given keyword
+     * if it exists. Otherwise, returns <code>-1</code>.
      * 
      * @param connection Connection to the HL database.
      * @param keyword    Keyword to search ID for.
-     * @return
+     * @return Record ID of the keyword if exists, <code>-1</code> otherwise.
      */
     public static int getKeywordId(Connection connection, String keyword) {
         int keywordId = -1;
@@ -121,54 +147,13 @@ public class DatabaseSelector {
     }
 
     /**
-     * 
-     * @param connection Connection to the HL database.
-     * @param movieName  Title of the movie.
-     * @return
-     */
-    public static int getMovieYear(Connection connection, String movieName) {
-        int year = -1;
-        String sql = "SELECT DISTINCT Year FROM Movie WHERE LOWER(MovieName) = ? ORDER BY Year LIMIT 1";
-        try {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, movieName.toLowerCase());
-            ResultSet results = statement.executeQuery();
-            while (results.next()) {
-                year = results.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return year;
-    }
-
-    /**
-     * 
-     * @param connection Connection to the HL database.
-     * @param role       Movie crew role type to search ID for.
-     * @return
-     */
-    public static int getMovieRoleId(Connection connection, String role) {
-        int roleId = -1;
-        String sql = "SELECT DISTINCT ID FROM Role WHERE LOWER(Description) = ?";
-        try {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, role.toLowerCase());
-            ResultSet results = statement.executeQuery();
-            while (results.next()) {
-                roleId = results.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return roleId;
-    }
-
-    /**
+     * Returns the year of release of the given music album if it's record exists in
+     * the Music table. Otherwise, returns <code>-1</code>.
      * 
      * @param connection Connection to the HL database.
      * @param albumName  Title of the music album.
-     * @return
+     * @return Year of release of the given music album if exists, <code>-1</code>
+     *         otherwise.
      */
     public static int getMusicAlbumYear(Connection connection, String albumName) {
         int year = -1;
@@ -187,10 +172,61 @@ public class DatabaseSelector {
     }
 
     /**
+     * Returns the year of release of the given movie if it's record exists in the
+     * Movie table. Otherwise, returns <code>-1</code>.
+     * 
+     * @param connection Connection to the HL database.
+     * @param movieName  Title of the movie.
+     * @return Year of release of the given movie if exists, <code>-1</code>
+     *         otherwise.
+     */
+    public static int getMovieYear(Connection connection, String movieName) {
+        int year = -1;
+        String sql = "SELECT DISTINCT Year FROM Movie WHERE LOWER(MovieName) = ? ORDER BY Year LIMIT 1";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, movieName.toLowerCase());
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                year = results.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return year;
+    }
+
+    /**
+     * Returns the record ID of the people involved role as it appears in the Role
+     * table if it exists. Otherwise, returns <code>-1</code>.
+     * 
+     * @param connection Connection to the HL database.
+     * @param role       Movie crew role type to search ID for.
+     * @return Record ID of role if exists, <code>-1<code> otherwise.
+     */
+    public static int getRoleId(Connection connection, String role) {
+        int roleId = -1;
+        String sql = "SELECT DISTINCT ID FROM Role WHERE LOWER(Description) = ?";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, role.toLowerCase());
+            ResultSet results = statement.executeQuery();
+            while (results.next()) {
+                roleId = results.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return roleId;
+    }
+
+    /**
+     * Returns the person data under the PeopleInvolved table given the ID for that
+     * record if it exists. Otherwise, returns <code>null</code>.
      * 
      * @param connection Connection to the HL database.
      * @param personId   ID of the person's record in the PeopleInvolved table.
-     * @return
+     * @return Person data if exists, <code>null</code> otherwise.
      */
     public static Person getPerson(Connection connection, int personId) {
         Person person = null;
@@ -215,10 +251,13 @@ public class DatabaseSelector {
     }
 
     /**
+     * View -> Query -> Book <br/>
+     * Returns the data for a book with the given ISBN if it exists. Otherwise,
+     * returns <code>null</code>.
      * 
      * @param connection Connection to the HL database.
      * @param isbn       ISBN of the book.
-     * @return
+     * @return Book data object if ISBN exists, <code>null</code> otherwise.
      */
     public static Book getBook(Connection connection, String isbn) {
         Book book = null;
@@ -345,11 +384,14 @@ public class DatabaseSelector {
     }
 
     /**
+     * View -> Query -> Music Album <br/>
+     * Returns the data for the music album with the given music album name and
+     * release year if it exists. Otherwise, returns <code>null</code>.
      * 
      * @param connection Connection to the HL database.
      * @param albumName  Title of the music album.
      * @param year       Year of when the product was published or released.
-     * @return
+     * @return Music album data if exists, <code>null</code> otherwise.
      */
     public static MusicAlbum getMusicAlbum(Connection connection, String albumName, int year) {
         MusicAlbum album = null;
@@ -589,11 +631,14 @@ public class DatabaseSelector {
     }
 
     /**
+     * View -> Query -> Movie <br/>
+     * Returns the movie data with the given movie name and release year if it
+     * exists. Otherwise, returns <code>null</code>.
      * 
      * @param connection Connection to the HL database.
      * @param movieName  Title of the movie.
      * @param year       Year of when the product was published or released.
-     * @return
+     * @return Movie data if it exists, <code>null</code> otherwise.
      */
     public static Movie getMovie(Connection connection, String movieName, int year) {
         Movie movie = null;

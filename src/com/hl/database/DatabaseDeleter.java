@@ -5,14 +5,19 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.hl.exceptions.DatabaseDeleteException;
+
 public class DatabaseDeleter {
 
     /**
-     * Connects to the HL database and deletes
+     * Connects to the HL database and deletes the record of the person with the
+     * given ID from the PeopleInvolved table. Returns <code>true</code> upon
+     * successful deletion.
      * 
      * @param connection Connection to the HL database.
-     * @param personId
-     * @return
+     * @param personId   Record ID of the person to delete.
+     * @return <code>true</code> upon successful deletion from the PeopleInvolved
+     *         table.
      * @throws SQLException On delete error.
      */
     protected static boolean deletePerson(Connection connection, int personId) throws SQLException {
@@ -23,6 +28,16 @@ public class DatabaseDeleter {
         return true;
     }
 
+    /**
+     * Connects to the HL database and deletes the record of the keyword with the
+     * given ID from the Keyword table. Returns <code>true</code> upon successful
+     * deletion.
+     * 
+     * @param connection Connection to the HL database.
+     * @param keywordId  Record ID of the keyword to delete.
+     * @return <code>true</code> upon successful deletion from the Keyword table.
+     * @throws SQLException On delete error.
+     */
     protected static boolean deleteKeyword(Connection connection, int keywordId) throws SQLException {
         String sql = "DELETE FROM Keyword WHERE ID = ?";
         PreparedStatement statement = connection.prepareStatement(sql);
@@ -31,8 +46,18 @@ public class DatabaseDeleter {
         return true;
     }
 
-    public static boolean deleteBook(Connection connection, String isbn) {
-        boolean success = false;
+    /**
+     * Deletes the book with the given name and year of publication from the
+     * database, and returns <code>true</code> upon successful deletion.
+     * 
+     * @param connection Connection to the HL database.
+     * @param isbn       ISBN of the book to delete.
+     * @return <code>true</code> upon successful deletion of the book data from the
+     *         database.
+     * @throws DatabaseDeleteException On error with deletion.
+     */
+    public static boolean deleteBook(Connection connection, String isbn) throws DatabaseDeleteException {
+        String exceptionMessage = "";
         List<Integer> authorIds = DatabaseSelector.getBookAuthorIds(connection, isbn);
         List<Integer> keywordIds = DatabaseSelector.getBookKeywordIds(connection, isbn);
         try {
@@ -57,8 +82,10 @@ public class DatabaseDeleter {
                 }
             }
             connection.commit();
-            success = true;
+            connection.setAutoCommit(true);
+            return true;
         } catch (SQLException e) {
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
@@ -71,7 +98,7 @@ public class DatabaseDeleter {
                 sqle.printStackTrace();
             }
         }
-        return success;
+        throw new DatabaseDeleteException(exceptionMessage);
     }
 
     protected static boolean deleteBookDetails(Connection connection, String isbn) throws SQLException {
@@ -98,8 +125,38 @@ public class DatabaseDeleter {
         return true;
     }
 
-    public static boolean deleteMusicAlbum(Connection connection, String albumName, int year) {
-        boolean success = false;
+    /**
+     * Deletes the music album with the given name and year of release from the
+     * database, and returns <code>true</code> upon successful deletion.
+     * 
+     * @param connection Connection to the HL database.
+     * @param albumName  Name of music album to delete.
+     * @param year       Year of release of music album to delete.
+     * @return <code>true</code> upon successful deletion of the music album data
+     *         from the database.
+     * @throws DatabaseDeleteException On error with deletion.
+     */
+    public static boolean deleteMusicAlbum(Connection connection, String albumName, int year)
+            throws DatabaseDeleteException {
+        return deleteMusicAlbum(connection, albumName, year, true);
+    }
+
+    /**
+     * Deletes the music album with the given name and year of release from the
+     * database, and returns <code>true</code> upon successful deletion.
+     * 
+     * @param connection      Connection to the HL database.
+     * @param albumName       Name of music album to delete.
+     * @param year            Year of release of music album to delete.
+     * @param finalAutoCommit Whether or not to set autocommit to <code>true</code>
+     *                        after deletion.
+     * @return <code>true</code> upon successful deletion of the music album data
+     *         from the database.
+     * @throws DatabaseDeleteException On error with deletion.
+     */
+    protected static boolean deleteMusicAlbum(Connection connection, String albumName, int year,
+            boolean finalAutoCommit) throws DatabaseDeleteException {
+        String exceptionMessage = "";
         List<Integer> peopleInvolvedIds = DatabaseSelector.getMusicCrewIds(connection, albumName, year);
         try {
             connection.setAutoCommit(false);
@@ -115,8 +172,10 @@ public class DatabaseDeleter {
                 }
             }
             connection.commit();
-            success = true;
+            connection.setAutoCommit(finalAutoCommit);
+            return true;
         } catch (SQLException e) {
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
@@ -124,12 +183,12 @@ public class DatabaseDeleter {
             }
         } finally {
             try {
-                connection.setAutoCommit(true);
+                connection.setAutoCommit(finalAutoCommit);
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
         }
-        return success;
+        throw new DatabaseDeleteException(exceptionMessage);
     }
 
     protected static boolean deleteMusicTracks(Connection connection, String albumName, int year) throws SQLException {
@@ -159,8 +218,38 @@ public class DatabaseDeleter {
         return true;
     }
 
-    public static boolean deleteMovie(Connection connection, String movieName, int year) {
-        boolean success = false;
+    /**
+     * Deletes the movie with the given name and year of release from the database,
+     * and returns <code>true</code> upon successful deletion.
+     * 
+     * @param connection Connection to the HL database.
+     * @param movieName  Name of the movie to delete.
+     * @param year       Year of release of movie to delete.
+     * @return <code>true</code> upon successful deletion of the movie data from the
+     *         database.
+     * @throws DatabaseDeleteException On error with deletion.
+     */
+    public static boolean deleteMovie(Connection connection, String movieName, int year)
+            throws DatabaseDeleteException {
+        return deleteMovie(connection, movieName, year, true);
+    }
+
+    /**
+     * Deletes the movie with the given name and year of release from the database,
+     * and returns <code>true</code> upon successful deletion.
+     * 
+     * @param connection      Connection to the HL database.
+     * @param movieName       Name of the movie to delete.
+     * @param year            Year of release of movie to delete.
+     * @param finalAutoCommit Whether or not to set autocommit to <code>true</code>
+     *                        after deletion.
+     * @return <code>true</code> upon successful deletion of the movie data from the
+     *         database.
+     * @throws DatabaseDeleteException On error with deletion.
+     */
+    protected static boolean deleteMovie(Connection connection, String movieName, int year, boolean finalAutoCommit)
+            throws DatabaseDeleteException {
+        String exceptionMessage = "";
         List<Integer> crewIds = DatabaseSelector.getMovieCrewIds(connection, movieName, year);
         try {
             connection.setAutoCommit(false);
@@ -176,8 +265,10 @@ public class DatabaseDeleter {
                 }
             }
             connection.commit();
-            success = true;
+            connection.setAutoCommit(finalAutoCommit);
+            return true;
         } catch (SQLException e) {
+            exceptionMessage = e.getMessage();
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
@@ -185,12 +276,12 @@ public class DatabaseDeleter {
             }
         } finally {
             try {
-                connection.setAutoCommit(true);
+                connection.setAutoCommit(finalAutoCommit);
             } catch (SQLException sqle) {
                 sqle.printStackTrace();
             }
         }
-        return success;
+        throw new DatabaseDeleteException(exceptionMessage);
     }
 
     protected static boolean deleteMovieDetails(Connection connection, String movieName, int year) throws SQLException {

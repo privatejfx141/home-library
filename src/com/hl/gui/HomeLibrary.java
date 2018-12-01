@@ -25,6 +25,8 @@ public class HomeLibrary extends JFrame {
     public static final String INSERT_DB_FAILURE_MSG = "Error! Insertion to HL database was not successful.";
     public static final String UPDATE_DB_SUCCESS_MSG = "Update to HL database was successful!";
     public static final String UPDATE_DB_FAILURE_MSG = "Error! Update to HL database was not successful.";
+    public static final String REMOVE_DB_SUCCESS_MSG = "Product of name %s and type %s was successfully removed.";
+    public static final String REMOVE_DB_FAILURE_MSG = "Error! Remove from HL database was not successful.";
 
     public static void main(String args[]) {
         new HomeLibrary();
@@ -38,6 +40,18 @@ public class HomeLibrary extends JFrame {
 
     public static void showSubmitErrorMessageBox(Component parentComponent, String error) {
         String title = "Submit Error";
+        int msgType = JOptionPane.ERROR_MESSAGE;
+        JOptionPane.showMessageDialog(parentComponent, error, title, msgType);
+    }
+
+    public static void showRemoveMessageBox(Component parentComponent, String message) {
+        String title = "Remove Success";
+        int msgType = JOptionPane.INFORMATION_MESSAGE;
+        JOptionPane.showMessageDialog(parentComponent, message, title, msgType);
+    }
+
+    public static void showRemoveErrorMessageBox(Component parentComponent, String error) {
+        String title = "Remove Error";
         int msgType = JOptionPane.ERROR_MESSAGE;
         JOptionPane.showMessageDialog(parentComponent, error, title, msgType);
     }

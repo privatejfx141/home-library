@@ -1,11 +1,12 @@
 package com.hl.record;
 
 import com.hl.exceptions.NameFormatException;
+import com.hl.generics.Genders;
 
 public class Person {
 
-    public static String MALE = "Male";
-    public static String FEMALE = "Female";
+    public static String MALE = Genders.MALE.toString();
+    public static String FEMALE = Genders.FEMALE.toString();;
 
     public static class Builder {
         protected Person person;

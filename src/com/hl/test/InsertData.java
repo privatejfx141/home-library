@@ -20,11 +20,10 @@ import com.hl.exceptions.NameFormatException;
 import com.hl.record.Person;
 import com.hl.record.book.Book;
 import com.hl.record.movie.Movie;
-import com.hl.record.movie.MovieCrew;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
-public class InsertTest {
+public class InsertData {
 
     public static void main(String[] args) throws Exception {
         Connection connection = DatabaseDriver.connectToDatabase();
