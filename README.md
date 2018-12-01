@@ -1,5 +1,5 @@
 # cscc43
-Home Library project
+Home Library project for CSCC43 assignments 1 and 3, developed by Yun Jie (Jeffrey) Li in the fall of 2018.
 
 ## Running the HL application
 The `HL` database must be first setup on `localhost` with all the tables from the `a2_script.sql` file created. People involved roles must also have been already inserted.
