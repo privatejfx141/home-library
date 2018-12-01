@@ -8,6 +8,11 @@ import java.sql.SQLException;
 import com.hl.exceptions.NameFormatException;
 import com.hl.record.Person;
 
+/**
+ * Collection of methods for querying report data from the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseQueryReport {
 
     /**

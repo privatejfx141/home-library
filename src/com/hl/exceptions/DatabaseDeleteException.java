@@ -1,5 +1,10 @@
 package com.hl.exceptions;
 
+/**
+ * Exception that is thrown on error with deletion from the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseDeleteException extends Exception {
 
     /**

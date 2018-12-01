@@ -14,10 +14,14 @@ import com.hl.record.movie.MovieCrew;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
+/**
+ * Collection of methods for querying product data from the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseSelector {
 
     /**
-     * View -> Query <br/>
      * Returns the product data (book, music album, movie) for the given product
      * name if it exists. Otherwise, returns <code>null</code> if such product data
      * does not exist.
@@ -384,7 +388,6 @@ public class DatabaseSelector {
     }
 
     /**
-     * View -> Query -> Music Album <br/>
      * Returns the data for the music album with the given music album name and
      * release year if it exists. Otherwise, returns <code>null</code>.
      * 
@@ -631,7 +634,6 @@ public class DatabaseSelector {
     }
 
     /**
-     * View -> Query -> Movie <br/>
      * Returns the movie data with the given movie name and release year if it
      * exists. Otherwise, returns <code>null</code>.
      * 

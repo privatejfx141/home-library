@@ -1,5 +1,10 @@
 package com.hl.exceptions;
 
+/**
+ * Exception that is thrown on error with insertion to the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseInsertException extends Exception {
 
     /**

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.awt.event.ActionEvent;
 
 public class QueryDialog extends JDialog {
+
     /**
      * Generated serial version UID.
      */

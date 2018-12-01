@@ -7,6 +7,11 @@ import java.sql.SQLException;
 
 import com.hl.generics.Roles;
 
+/**
+ * Collection of methods for database connection and initializing the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseDriver {
 
     public static final boolean INSERT_ROLES_ON_INITIALIZE = false;

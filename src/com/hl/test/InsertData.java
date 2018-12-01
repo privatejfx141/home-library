@@ -23,6 +23,9 @@ import com.hl.record.movie.Movie;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
+/**
+ * This class is run to insert dummy test data into the HL database.
+ */
 public class InsertData {
 
     public static void main(String[] args) throws Exception {

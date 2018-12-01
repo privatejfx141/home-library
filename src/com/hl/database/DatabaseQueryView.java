@@ -6,6 +6,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+/**
+ * Collection of methods for querying basic product data from the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseQueryView {
 
     protected static ArrayList<Object[]> getViewData(ResultSet results, String productType) throws SQLException {

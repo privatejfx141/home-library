@@ -12,6 +12,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+/**
+ * GUI class for the main menu and message dialog boxes of the Home Library
+ * application.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class HomeLibrary extends JFrame {
 
     /**

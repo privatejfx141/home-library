@@ -7,6 +7,11 @@ import java.util.List;
 
 import com.hl.exceptions.DatabaseDeleteException;
 
+/**
+ * Collection of methods for removing product data from the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseDeleter {
 
     /**

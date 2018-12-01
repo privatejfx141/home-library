@@ -15,6 +15,11 @@ import com.hl.record.movie.MovieCrew;
 import com.hl.record.music.MusicAlbum;
 import com.hl.record.music.MusicTrack;
 
+/**
+ * Collection of methods for updating existing product data to the HL database.
+ * 
+ * @author Yun Jie (Jeffrey) Li
+ */
 public class DatabaseUpdater {
 
     protected static boolean updatePerson(Connection connection, Person person) throws SQLException {

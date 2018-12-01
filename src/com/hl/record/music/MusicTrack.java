@@ -5,9 +5,14 @@ import java.util.Collection;
 import java.util.List;
 
 import com.hl.exceptions.NameFormatException;
+import com.hl.generics.DiskTypes;
 import com.hl.record.Person;
 
 public class MusicTrack {
+
+    private static final String CD = DiskTypes.CD.toString();
+    private static final String VINYL = DiskTypes.VINYL.toString();
+
     private String name = "";
     private String language = "";
     private List<Person> singers;
@@ -118,7 +123,7 @@ public class MusicTrack {
         }
 
         public Builder setDiskType(boolean diskType) {
-            return setDiskType(diskType ? "Vinyl" : "CD");
+            return setDiskType(diskType ? VINYL : CD);
         }
 
         public MusicTrack create() {
