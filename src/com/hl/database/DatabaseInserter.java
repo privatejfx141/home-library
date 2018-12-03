@@ -170,7 +170,7 @@ public class DatabaseInserter {
      * @return <code>1</code> on successful insert, <code>-1</code> otherwise.
      * @throws DatabaseInsertException
      */
-    public static int insertMusicAlbum(Connection connection, MusicAlbum album, boolean finalAutoCommit)
+    protected static int insertMusicAlbum(Connection connection, MusicAlbum album, boolean finalAutoCommit)
             throws DatabaseInsertException {
         String exceptionMessage = "";
         int recordId = -1;
@@ -186,7 +186,9 @@ public class DatabaseInserter {
             for (MusicTrack track : album.getMusicTracks()) {
                 recordId = insertMusicTrack(connection, album, track, producerId);
             }
-            connection.commit();
+            if (finalAutoCommit) {
+                connection.commit();
+            }
             connection.setAutoCommit(finalAutoCommit);
             return recordId;
         } catch (SQLException e) {
@@ -313,7 +315,7 @@ public class DatabaseInserter {
         return insertMovie(connection, movie, true);
     }
 
-    public static int insertMovie(Connection connection, Movie movie, boolean finalAutoCommit)
+    protected static int insertMovie(Connection connection, Movie movie, boolean finalAutoCommit)
             throws DatabaseInsertException {
         String exceptionMessage = "";
         int recordId = -1;
@@ -324,7 +326,9 @@ public class DatabaseInserter {
                 int personId = insertMovieCrew(connection, movie, crew);
                 insertMovieAward(connection, personId, movie, crew.getAward());
             }
-            connection.commit();
+            if (finalAutoCommit) {
+                connection.commit();
+            }
             connection.setAutoCommit(finalAutoCommit);
             return recordId;
         } catch (SQLException e) {

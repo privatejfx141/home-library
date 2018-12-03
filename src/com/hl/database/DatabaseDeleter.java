@@ -176,7 +176,9 @@ public class DatabaseDeleter {
                     continue;
                 }
             }
-            connection.commit();
+            if (finalAutoCommit) {
+                connection.commit();
+            }
             connection.setAutoCommit(finalAutoCommit);
             return true;
         } catch (SQLException e) {
@@ -269,7 +271,9 @@ public class DatabaseDeleter {
                     continue;
                 }
             }
-            connection.commit();
+            if (finalAutoCommit) {
+                connection.commit();
+            }
             connection.setAutoCommit(finalAutoCommit);
             return true;
         } catch (SQLException e) {

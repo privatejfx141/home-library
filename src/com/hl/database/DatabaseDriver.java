@@ -14,7 +14,7 @@ import com.hl.generics.Roles;
  */
 public class DatabaseDriver {
 
-    public static final boolean INSERT_ROLES_ON_INITIALIZE = false;
+    public static boolean INSERT_ROLES_ON_INITIALIZE = false;
 
     public static void main(String[] args) {
         initializeDatabase();
